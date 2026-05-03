@@ -20,6 +20,13 @@ import { isAuthAction } from './is-auth-action';
 import { API_BASENAME, api } from './route-builder';
 neonConfig.webSocketConstructor = ws;
 
+function normalizeDatabaseUrl(rawValue?: string): string | undefined {
+  if (typeof rawValue !== 'string') return undefined;
+  const trimmed = rawValue.trim();
+  if (!trimmed) return undefined;
+  return trimmed.replace(/^['"]|['"]$/g, '');
+}
+
 const als = new AsyncLocalStorage<{ requestId: string }>();
 
 for (const method of ['log', 'info', 'warn', 'error', 'debug'] as const) {
@@ -36,7 +43,7 @@ for (const method of ['log', 'info', 'warn', 'error', 'debug'] as const) {
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: normalizeDatabaseUrl(process.env.DATABASE_URL),
 });
 const adapter = NeonAdapter(pool);
 

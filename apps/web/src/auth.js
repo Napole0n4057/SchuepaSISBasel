@@ -8,6 +8,13 @@ import Credentials from "@auth/core/providers/credentials"
 import { Pool } from '@neondatabase/serverless'
 import { hash, verify } from 'argon2'
 
+function normalizeDatabaseUrl(rawValue) {
+  if (typeof rawValue !== 'string') return undefined;
+  const trimmed = rawValue.trim();
+  if (!trimmed) return undefined;
+  return trimmed.replace(/^['"]|['"]$/g, '');
+}
+
 function Adapter(client) {
   return {
     async createVerificationToken(
@@ -250,7 +257,7 @@ function Adapter(client) {
   };
 }
 const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: normalizeDatabaseUrl(process.env.DATABASE_URL),
     });
 const adapter = Adapter(pool);
 
