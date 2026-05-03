@@ -13,13 +13,6 @@ function useAuth() {
     });
   }, [callbackUrl])
 
-  const signUpWithCredentials = useCallback((options) => {
-    return signIn("credentials-signup", {
-      ...options,
-      callbackUrl: callbackUrl ?? options.callbackUrl
-    });
-  }, [callbackUrl])
-
   const signInWithGoogle = useCallback((options) => {
     return signIn("google", {
       ...options,
@@ -41,7 +34,6 @@ function useAuth() {
 
   return {
     signInWithCredentials,
-    signUpWithCredentials,
     signInWithGoogle,
     signInWithFacebook,
     signInWithTwitter,

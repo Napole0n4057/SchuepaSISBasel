@@ -28,9 +28,10 @@ export async function GET() {
     }
 
     const rows = await sql`
-      SELECT user_id, email, designation, created_at, updated_at
-      FROM user_roles
-      ORDER BY created_at DESC
+      SELECT ur.user_id, ur.email, ur.designation, ur.created_at, ur.updated_at, au.name
+      FROM user_roles ur
+      LEFT JOIN auth_users au ON au.id = ur.user_id
+      ORDER BY ur.created_at DESC
     `;
 
     return Response.json({ users: rows });

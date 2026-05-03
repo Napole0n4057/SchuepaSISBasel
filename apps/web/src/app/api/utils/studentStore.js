@@ -17,9 +17,19 @@ async function ensureStore() {
 }
 
 function parseLine(line) {
-  const [email, passwordHash, createdAt] = line.split("\t");
+  const [nameOrEmail, emailOrPasswordHash, passwordHashOrCreatedAt, maybeCreatedAt] =
+    line.split("\t");
+  // Backward compatibility with older rows: email, passwordHash, createdAt
+  const hasNameColumn = maybeCreatedAt !== undefined;
+  const name = hasNameColumn ? nameOrEmail : "";
+  const email = hasNameColumn ? emailOrPasswordHash : nameOrEmail;
+  const passwordHash = hasNameColumn
+    ? passwordHashOrCreatedAt
+    : emailOrPasswordHash;
+  const createdAt = hasNameColumn ? maybeCreatedAt : passwordHashOrCreatedAt;
   if (!email || !passwordHash) return null;
   return {
+    name,
     email,
     passwordHash,
     createdAt: createdAt || null,
@@ -28,6 +38,7 @@ function parseLine(line) {
 
 function serializeLine(entry) {
   return [
+    entry.name || "",
     entry.email,
     entry.passwordHash,
     entry.createdAt || new Date().toISOString(),

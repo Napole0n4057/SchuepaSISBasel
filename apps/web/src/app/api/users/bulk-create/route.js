@@ -3,6 +3,14 @@ import { auth } from "@/auth";
 import { hash } from "argon2";
 import { addStudent } from "@/app/api/utils/studentStore";
 
+function deriveNameFromEmail(email) {
+  const localPart = email.split("@")[0] || email;
+  return localPart
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function POST(request) {
   try {
     const session = await auth();
@@ -46,6 +54,8 @@ export async function POST(request) {
 
     for (const userData of users) {
       const { email, password } = userData;
+      const providedName =
+        typeof userData.name === "string" ? userData.name.trim() : "";
 
       if (!email || !password) {
         results.errors.push({
@@ -74,10 +84,15 @@ export async function POST(request) {
         // Hash the password
         const hashedPassword = await hash(password);
 
+        const resolvedName =
+          providedName.length > 0
+            ? providedName
+            : deriveNameFromEmail(normalizedEmail);
+
         // Create user in auth_users
         const newUser = await sql`
           INSERT INTO auth_users (email, name, "emailVerified")
-          VALUES (${normalizedEmail}, ${normalizedEmail}, NOW())
+          VALUES (${normalizedEmail}, ${resolvedName}, NOW())
           RETURNING id, email
         `;
 
@@ -97,12 +112,13 @@ export async function POST(request) {
 
         // Store in text file (local) for teacher requirement
         await addStudent({
+          name: resolvedName,
           email: normalizedEmail,
           passwordHash: hashedPassword,
           createdAt: new Date().toISOString(),
         });
 
-        results.created.push({ email: normalizedEmail });
+        results.created.push({ email: normalizedEmail, name: resolvedName });
       } catch (err) {
         console.error(`Error creating user ${normalizedEmail}:`, err);
         results.errors.push({

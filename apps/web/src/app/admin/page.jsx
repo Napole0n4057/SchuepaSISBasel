@@ -1,6 +1,47 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
 
+function parseUsersFromText(rawText) {
+  const lines = rawText.trim().split("\n");
+  const users = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    // Supported formats:
+    // 1) Name, email@sis.ch, password
+    // 2) Name<TAB>email@sis.ch<TAB>password
+    // 3) email@sis.ch password
+    if (trimmed.includes("\t")) {
+      const [name, email, password] = trimmed
+        .split("\t")
+        .map((value) => value.trim());
+      if (email && password) {
+        users.push({ name: name || undefined, email, password });
+      }
+      continue;
+    }
+
+    if (trimmed.includes(",")) {
+      const [name, email, password] = trimmed
+        .split(",")
+        .map((value) => value.trim());
+      if (email && password) {
+        users.push({ name: name || undefined, email, password });
+      }
+      continue;
+    }
+
+    const [email, password] = trimmed.split(/\s+/, 2);
+    if (email && password) {
+      users.push({ email, password });
+    }
+  }
+
+  return users;
+}
+
 export default function AdminPage() {
   const { data: user, loading: userLoading } = useUser();
   const [users, setUsers] = useState([]);
@@ -11,6 +52,7 @@ export default function AdminPage() {
 
   const [bulkImportText, setBulkImportText] = useState("");
   const [bulkResults, setBulkResults] = useState(null);
+  const [importFileName, setImportFileName] = useState("");
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -123,25 +165,7 @@ export default function AdminPage() {
       setSuccess(null);
       setBulkResults(null);
 
-      // Parse space-separated: email password per line
-      const lines = bulkImportText.trim().split("\n");
-      const usersList = [];
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) continue; // skip empty or comment lines
-
-        // Split by first space only
-        const spaceIndex = trimmed.indexOf(" ");
-        if (spaceIndex === -1) continue;
-
-        const email = trimmed.substring(0, spaceIndex).trim();
-        const password = trimmed.substring(spaceIndex + 1).trim();
-
-        if (email && password) {
-          usersList.push({ email, password });
-        }
-      }
+      const usersList = parseUsersFromText(bulkImportText);
 
       if (usersList.length === 0) {
         throw new Error(
@@ -166,12 +190,27 @@ export default function AdminPage() {
         `Massenimport abgeschlossen / Bulk import complete: ${data.summary.created} erstellt / created, ${data.summary.skipped} übersprungen / skipped, ${data.summary.errors} Fehler / errors`,
       );
       setBulkImportText("");
+      setImportFileName("");
       fetchData();
     } catch (err) {
       console.error(err);
       setError(
         err.message || "Fehler beim Massenimport / Error during bulk import",
       );
+    }
+  };
+
+  const handleImportFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setBulkImportText(text);
+      setImportFileName(file.name);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Datei konnte nicht gelesen werden / Could not read file");
     }
   };
 
@@ -206,7 +245,7 @@ export default function AdminPage() {
 
   // Filter users based on search
   const filteredUsers = users.filter((u) =>
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()),
+    `${u.name || ""} ${u.email}`.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -280,6 +319,9 @@ export default function AdminPage() {
               <thead>
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
                     E-Mail / Email
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
@@ -293,6 +335,9 @@ export default function AdminPage() {
               <tbody className="divide-y divide-gray-200">
                 {filteredUsers.map((u) => (
                   <tr key={u.user_id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {u.name || "-"}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {u.email}
                     </td>
@@ -355,21 +400,35 @@ export default function AdminPage() {
               Import Accounts / Konten importieren
             </h2>
             <p className="mb-4 text-sm text-gray-600">
-              Format: Eine Zeile pro Benutzer:{" "}
+              Format A (empfohlen / recommended):{" "}
               <code className="bg-gray-100 px-2 py-1 rounded">
-                email@sisbasel.ch password123
+                Max Muster, max@sisbasel.ch, Password123!
               </code>
               <br />
-              Format: One line per user:{" "}
+              Format B (legacy):{" "}
               <code className="bg-gray-100 px-2 py-1 rounded">
                 email@sisbasel.ch password123
               </code>
             </p>
             <form onSubmit={handleBulkImport} className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="cursor-pointer rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50">
+                  .txt Datei auswählen / Choose .txt file
+                  <input
+                    type="file"
+                    accept=".txt,.csv"
+                    onChange={handleImportFileChange}
+                    className="hidden"
+                  />
+                </label>
+                {importFileName ? (
+                  <span className="text-sm text-gray-600">{importFileName}</span>
+                ) : null}
+              </div>
               <textarea
                 value={bulkImportText}
                 onChange={(e) => setBulkImportText(e.target.value)}
-                placeholder="user1@sisbasel.ch password123&#10;user2@sisbasel.ch password456&#10;user3@sisbasel.ch password789"
+                placeholder="Max Muster, max@sisbasel.ch, Password123!&#10;Lia Beispiel, lia@sisbasel.ch, Password123!"
                 rows={8}
                 className="w-full rounded-md border border-gray-300 px-4 py-2 font-mono text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
               />

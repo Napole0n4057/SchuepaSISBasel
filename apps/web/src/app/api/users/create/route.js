@@ -29,6 +29,7 @@ export async function POST(request) {
 
     const body = await request.json();
     const { email, password } = body;
+    const providedName = typeof body.name === "string" ? body.name.trim() : "";
 
     if (!email || !password) {
       return Response.json(
@@ -51,10 +52,15 @@ export async function POST(request) {
     // Hash the password
     const hashedPassword = await hash(password);
 
+    const resolvedName =
+      providedName.length > 0
+        ? providedName
+        : normalizedEmail.split("@")[0].replace(/[._-]+/g, " ").trim();
+
     // Create user in auth_users
     const newUser = await sql`
       INSERT INTO auth_users (email, name, "emailVerified")
-      VALUES (${normalizedEmail}, ${normalizedEmail}, NOW())
+      VALUES (${normalizedEmail}, ${resolvedName}, NOW())
       RETURNING id, email
     `;
 
@@ -72,21 +78,9 @@ export async function POST(request) {
       VALUES (${userId.toString()}, ${normalizedEmail}, 'member')
     `;
 
-    // Add email to allowed list if not already there
-    const existingAllowed = await sql`
-      SELECT id FROM allowed_emails WHERE email = ${normalizedEmail}
-    `;
-
-    if (existingAllowed.length === 0) {
-      await sql`
-        INSERT INTO allowed_emails (email)
-        VALUES (${normalizedEmail})
-      `;
-    }
-
     return Response.json({
       success: true,
-      user: { id: userId, email: normalizedEmail },
+      user: { id: userId, email: normalizedEmail, name: resolvedName },
     });
   } catch (err) {
     console.error("POST /api/users/create error", err);

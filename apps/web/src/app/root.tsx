@@ -463,7 +463,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <Meta />
         <Links />
         <script type="module" src="/src/__create/dev-error-overlay.js"></script>
-        <link rel="icon" href="/src/__create/favicon.png" />
+        <link rel="icon" href="/sis-student-parliament-logo.png" />
         {LoadFontsSSR ? <LoadFontsSSR /> : null}
       </head>
       <body>

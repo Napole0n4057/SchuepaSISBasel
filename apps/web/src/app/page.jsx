@@ -6,7 +6,6 @@ export default function HomePage() {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [blogPosts, setBlogPosts] = useState([]);
-  const [checkedFirstVisit, setCheckedFirstVisit] = useState(false);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -15,26 +14,6 @@ export default function HomePage() {
     } else if (!userLoading && !user) {
       setLoading(false);
     }
-  }, [user, userLoading]);
-
-  useEffect(() => {
-    if (userLoading) return;
-    if (user) {
-      setCheckedFirstVisit(true);
-      return;
-    }
-
-    if (typeof window === "undefined") return;
-    const firstVisitKey = "sis_first_visit";
-    const hasVisited = window.localStorage.getItem(firstVisitKey);
-
-    if (!hasVisited) {
-      window.localStorage.setItem(firstVisitKey, "1");
-      window.location.href = "/account/signup";
-      return;
-    }
-
-    setCheckedFirstVisit(true);
   }, [user, userLoading]);
 
   const fetchUserRole = async () => {
@@ -59,7 +38,7 @@ export default function HomePage() {
     }
   };
 
-  if (userLoading || loading || (!user && !checkedFirstVisit)) {
+  if (userLoading || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <p className="text-lg text-gray-600">Lädt... / Loading...</p>
@@ -86,6 +65,10 @@ export default function HomePage() {
           >
             Anmelden / Sign In
           </a>
+          <p className="mt-4 text-sm text-gray-600">
+            Zugang nur mit freigeschaltetem Schulkonto / Access requires a
+            school-approved account
+          </p>
         </div>
       </div>
     );
@@ -111,7 +94,7 @@ export default function HomePage() {
                 SIS Basel School Council
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                Willkommen / Welcome, {user.email}
+                Willkommen / Welcome, {user.name || user.email}
               </p>
             </div>
           </div>

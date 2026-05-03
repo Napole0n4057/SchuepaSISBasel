@@ -6,7 +6,7 @@
 import CreateAuth from "@auth/create"
 import Credentials from "@auth/core/providers/credentials"
 import { Pool } from '@neondatabase/serverless'
-import { hash, verify } from 'argon2'
+import { verify } from 'argon2'
 
 function normalizeDatabaseUrl(rawValue) {
   if (typeof rawValue !== 'string') return undefined;
@@ -304,61 +304,6 @@ export const { auth } = CreateAuth({
 
     // return user object with the their profile data
     return user;
-  },
-}),
-  Credentials({
-  id: 'credentials-signup',
-  name: 'Credentials Sign up',
-  credentials: {
-    email: {
-      label: 'Email',
-      type: 'email',
-    },
-    password: {
-      label: 'Password',
-      type: 'password',
-    },
-    name: { label: 'Name', type: 'text', required: false },
-    image: { label: 'Image', type: 'text', required: false },
-  },
-  authorize: async (credentials) => {
-    const { email, password } = credentials;
-    if (!email || !password) {
-      return null;
-    }
-    if (typeof email !== 'string' || typeof password !== 'string') {
-      return null;
-    }
-
-    // logic to verify if user exists
-    const user = await adapter.getUserByEmail(email);
-    if (!user) {
-      const newUser = await adapter.createUser({
-        id: crypto.randomUUID(),
-        emailVerified: null,
-        email,
-        name:
-          typeof credentials.name === 'string' &&
-          credentials.name.trim().length > 0
-            ? credentials.name
-            : undefined,
-        image:
-          typeof credentials.image === 'string'
-            ? credentials.image
-            : undefined,
-      });
-      await adapter.linkAccount({
-        extraData: {
-          password: await hash(password),
-        },
-        type: 'credentials',
-        userId: newUser.id,
-        providerAccountId: newUser.id,
-        provider: 'credentials',
-      });
-      return newUser;
-    }
-    return null;
   },
 })],
   pages: {

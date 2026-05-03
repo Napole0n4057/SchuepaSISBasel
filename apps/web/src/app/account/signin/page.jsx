@@ -124,13 +124,10 @@ export default function SignInPage() {
             {loading ? "Lädt... / Loading..." : "Anmelden / Sign In"}
           </button>
 
-          <div className="pt-4 border-t border-gray-200">
-            <a
-              href="/account/signup"
-              className="block w-full rounded-md border border-gray-300 px-4 py-3 text-center text-base font-medium text-gray-900 hover:bg-gray-50"
-            >
-              Konto erstellen / Sign Up
-            </a>
+          <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-center text-sm text-gray-600">
+            Kein Konto? Bitte wenden Sie sich an das Schulparlament.
+            <br />
+            Need access? Please contact the school council.
           </div>
         </div>
       </form>
