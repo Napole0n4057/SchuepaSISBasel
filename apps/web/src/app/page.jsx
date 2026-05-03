@@ -73,9 +73,9 @@ export default function HomePage() {
         <div className="text-center max-w-md">
           <a href="/" aria-label="Zur Startseite / Back to Home">
             <img
-              src="https://theinternationalschools.com/ch/wp-content/uploads/sites/7/2021/11/sis-basel-logo-the-international-schools-group-switzerland-TISG.png.webp"
+              src="/sis-student-parliament-logo.png"
               alt="SIS Basel Logo"
-              className="mx-auto mb-8 h-32 w-auto mix-blend-multiply"
+              className="mx-auto mb-8 h-32 w-auto"
             />
           </a>
           <h1 className="mb-4 text-3xl font-bold text-gray-900">Willkommen</h1>
@@ -101,9 +101,9 @@ export default function HomePage() {
           <div className="flex items-center gap-4">
             <a href="/" aria-label="Zur Startseite / Back to Home">
               <img
-                src="https://theinternationalschools.com/ch/wp-content/uploads/sites/7/2021/11/sis-basel-logo-the-international-schools-group-switzerland-TISG.png.webp"
+                src="/sis-student-parliament-logo.png"
                 alt="SIS Basel Logo"
-                className="h-16 w-auto mix-blend-multiply"
+                className="h-16 w-auto"
               />
             </a>
             <div>

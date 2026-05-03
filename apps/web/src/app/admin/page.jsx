@@ -216,9 +216,9 @@ export default function AdminPage() {
           <div className="flex items-center gap-4">
             <a href="/" aria-label="Zur Startseite / Back to Home">
               <img
-                src="https://theinternationalschools.com/ch/wp-content/uploads/sites/7/2021/11/sis-basel-logo-the-international-schools-group-switzerland-TISG.png.webp"
+                src="/sis-student-parliament-logo.png"
                 alt="SIS Basel Logo"
-                className="h-16 w-auto mix-blend-multiply"
+                className="h-16 w-auto"
               />
             </a>
             <div>
