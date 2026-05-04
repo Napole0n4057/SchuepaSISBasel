@@ -21,12 +21,19 @@ export default function SignInPage() {
     }
 
     try {
-      await signInWithCredentials({
+      const result = await signInWithCredentials({
         email,
         password,
         callbackUrl: "/",
-        redirect: true,
+        redirect: false,
       });
+
+      if (result?.error) {
+        throw new Error("CredentialsSignin");
+      }
+
+      const destination = result?.url || "/";
+      window.location.href = destination;
     } catch (err) {
       const errorMessages = {
         OAuthSignin: "Anmeldung nicht möglich / Could not start sign-in",
@@ -50,6 +57,7 @@ export default function SignInPage() {
         errorMessages[err.message] ||
           "Etwas ist schiefgelaufen / Something went wrong",
       );
+    } finally {
       setLoading(false);
     }
   };
