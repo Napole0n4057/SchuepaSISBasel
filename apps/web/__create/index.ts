@@ -1,6 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import nodeConsole from 'node:console';
-import { skipCSRFCheck } from '@auth/core';
 import Credentials from '@auth/core/providers/credentials';
 import { authHandler, initAuthConfig } from '@hono/auth-js';
 import { Pool, neonConfig } from '@neondatabase/serverless';
@@ -99,13 +98,11 @@ if (process.env.AUTH_SECRET) {
     '*',
     initAuthConfig((c) => ({
       secret: c.env.AUTH_SECRET,
-      basePath: '/api/auth',
       trustHost: true,
       pages: {
         signIn: '/account/signin',
         signOut: '/account/logout',
       },
-      skipCSRFCheck,
       session: {
         strategy: 'jwt',
       },
