@@ -63,8 +63,8 @@ function Adapter(client) {
       }
     },
     async getUserByEmail(email) {
-      const sql = 'select * from auth_users where email = $1';
-      const result = await client.query(sql, [email]);
+      const sql = 'select * from auth_users where lower(email) = lower($1)';
+      const result = await client.query(sql, [email.trim()]);
       if (result.rowCount === 0) {
         return null;
       }
@@ -285,7 +285,8 @@ export const { auth } = CreateAuth({
     }
 
     // logic to verify if user exists
-    const user = await adapter.getUserByEmail(email);
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await adapter.getUserByEmail(normalizedEmail);
     if (!user) {
       return null;
     }

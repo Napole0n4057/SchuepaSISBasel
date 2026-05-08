@@ -21,9 +21,12 @@ export default function SignInPage() {
     }
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedPassword = password;
+
       const result = await signInWithCredentials({
-        email,
-        password,
+        email: normalizedEmail,
+        password: normalizedPassword,
         callbackUrl: "/",
         redirect: false,
       });
