@@ -32,6 +32,21 @@ export default function SignInPage() {
       });
 
       if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      // Some Auth.js setups can resolve signIn() without a stable error object,
+      // so we verify the session before redirecting.
+      const sessionResponse = await fetch("/api/auth/session", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+      const sessionData = sessionResponse.ok
+        ? await sessionResponse.json()
+        : null;
+
+      if (!sessionData?.user?.id) {
         throw new Error("CredentialsSignin");
       }
 
@@ -54,6 +69,8 @@ export default function SignInPage() {
         Configuration:
           "Anmeldung derzeit nicht möglich / Sign-in not available right now",
         Verification: "Link abgelaufen / Link expired",
+        SessionCheckFailed:
+          "Anmeldung konnte nicht bestätigt werden / Could not confirm sign-in",
       };
 
       setError(
