@@ -70,7 +70,7 @@ function Adapter(client) {
       }
       const userData = result.rows[0];
       const accountsData = await client.query(
-        'select * from auth_accounts where "providerAccountId" = $1',
+        'select * from auth_accounts where "userId" = $1',
         [userData.id]
       );
       return {
