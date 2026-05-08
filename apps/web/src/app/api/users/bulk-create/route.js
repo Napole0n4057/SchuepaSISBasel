@@ -1,7 +1,7 @@
-import sql from "@/app/api/utils/sql";
-import { auth } from "@/auth";
+import sql from "../../../../app/api/utils/sql.js";
+import { auth } from "../../../../auth.js";
 import { hash } from "argon2";
-import { addStudent } from "@/app/api/utils/studentStore";
+import { addStudent } from "../../../../app/api/utils/studentStore.js";
 
 function deriveNameFromEmail(email) {
   const localPart = email.split("@")[0] || email;

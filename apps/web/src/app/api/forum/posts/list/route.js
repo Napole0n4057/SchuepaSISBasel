@@ -1,6 +1,6 @@
-import sql from "@/app/api/utils/sql";
-import { auth } from "@/auth";
-import { extractNameFromEmail } from "@/app/api/utils/nameHelper";
+import sql from "../../../../../app/api/utils/sql.js";
+import { auth } from "../../../../../auth.js";
+import { extractNameFromEmail } from "../../../../../app/api/utils/nameHelper.js";
 
 export async function GET(request) {
   try {

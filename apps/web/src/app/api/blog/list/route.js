@@ -1,5 +1,5 @@
-import sql from "@/app/api/utils/sql";
-import { extractNameFromEmail } from "@/app/api/utils/nameHelper";
+import sql from "../../../../app/api/utils/sql.js";
+import { extractNameFromEmail } from "../../../../app/api/utils/nameHelper.js";
 
 export async function GET(request) {
   try {

@@ -1,6 +1,6 @@
-import { auth } from "@/auth";
-import sql from "@/app/api/utils/sql";
-import { readStudents } from "@/app/api/utils/studentStore";
+import { auth } from "../../../../auth.js";
+import sql from "../../../../app/api/utils/sql.js";
+import { readStudents } from "../../../../app/api/utils/studentStore.js";
 
 export async function GET() {
   try {

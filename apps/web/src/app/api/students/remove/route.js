@@ -1,6 +1,6 @@
-import { auth } from "@/auth";
-import sql from "@/app/api/utils/sql";
-import { removeStudent } from "@/app/api/utils/studentStore";
+import { auth } from "../../../../auth.js";
+import sql from "../../../../app/api/utils/sql.js";
+import { removeStudent } from "../../../../app/api/utils/studentStore.js";
 
 export async function POST(request) {
   try {

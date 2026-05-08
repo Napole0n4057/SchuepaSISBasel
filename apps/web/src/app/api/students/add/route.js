@@ -1,6 +1,6 @@
-import { auth } from "@/auth";
-import sql from "@/app/api/utils/sql";
-import { addStudent } from "@/app/api/utils/studentStore";
+import { auth } from "../../../../auth.js";
+import sql from "../../../../app/api/utils/sql.js";
+import { addStudent } from "../../../../app/api/utils/studentStore.js";
 import { hash } from "argon2";
 
 export async function POST(request) {
