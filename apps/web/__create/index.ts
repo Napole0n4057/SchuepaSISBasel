@@ -98,6 +98,7 @@ if (process.env.AUTH_SECRET) {
     '*',
     initAuthConfig((c) => ({
       secret: c.env.AUTH_SECRET,
+      basePath: '/api/auth',
       trustHost: true,
       pages: {
         signIn: '/account/signin',
@@ -163,7 +164,7 @@ if (process.env.AUTH_SECRET) {
               return null;
             }
             const matchingAccount = user.accounts.find(
-              (account) => account.provider === 'credentials'
+              (account) => account.provider === 'credentials-signin'
             );
             const accountPassword = matchingAccount?.password;
             if (!accountPassword) {
