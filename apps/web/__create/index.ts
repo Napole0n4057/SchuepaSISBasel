@@ -211,21 +211,16 @@ app.use('/api/auth/*', async (c, next) => {
   return next();
 });
 app.route(API_BASENAME, api);
-// NEW DEBUG ROUTE
+// THE WORKING DEBUG ROUTE
 app.get('/debug-password', async (c) => {
   try {
-    // We will use the 'argon2' library directly if 'verify' is being difficult
+    const { hash } = await import('argon2'); // Direct import to be 100% sure
     const password = "test1234";
+    const passwordHash = await hash(password);
     
-    // This tries the 'verify' object first, then a fallback
-    const hash = typeof verify.hash === 'function' 
-      ? await verify.hash(password) 
-      : "ERROR: verify.hash is missing";
-
     return c.json({ 
-      status: "Check",
-      hash: hash,
-      tip: "If hash says ERROR, we need to check your imports at the top of the file"
+      status: "Success",
+      hash: passwordHash 
     });
   } catch (err) {
     return c.json({ status: "Error", error: String(err) });
