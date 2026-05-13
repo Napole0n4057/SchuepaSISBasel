@@ -211,7 +211,20 @@ app.use('/api/auth/*', async (c, next) => {
   return next();
 });
 app.route(API_BASENAME, api);
-
+// TEMPORARY DEBUG ROUTE
+app.get('/debug-password', async (c) => {
+  try {
+    const password = "test1234";
+    const hash = await verify.hash(password);
+    return c.json({ 
+      status: "Success",
+      message: "Copy the hash below",
+      hash: hash 
+    });
+  } catch (err) {
+    return c.json({ status: "Error", error: String(err) });
+  }
+});
 export default createHonoServer({
   app,
   defaultLogger: false,
