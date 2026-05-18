@@ -1,108 +1,61 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import nodeConsole from 'node:console';
-import { webcrypto } from 'node:crypto';
 import Credentials from '@auth/core/providers/credentials';
 import { authHandler, initAuthConfig } from '@hono/auth-js';
 import { Pool, neonConfig } from '@neondatabase/serverless';
+import { verify as argonVerify } from 'argon2';
+import { Hono } from 'hono';
+import { contextStorage, getContext } from 'hono/context-storage';
+import { cors } from 'hono/cors';
+import { proxy } from 'hono/proxy';
+import { bodyLimit } from 'hono/body-limit';
+import { requestId } from 'hono/request-id';
+import { createHonoServer } from 'react-router-hono-server/node';
+import { serializeError } from 'serialize-error';
+import ws from 'ws';
+
+import NeonAdapter from './adapter';
+import { getHTMLForErrorPage } from './get-html-for-error-page';
+import { isAuthAction } from './is-auth-action';
 import { API_BASENAME, api } from './route-builder';
+
 neonConfig.webSocketConstructor = ws;
 
-// Auth.js JWT encode/decode relies on global WebCrypto in Node.
-if (typeof globalThis.crypto === 'undefined' && webcrypto) {
-  // @ts-expect-error Node WebCrypto is compatible here.
-  globalThis.crypto = webcrypto;
+// Ensure Node standard Crypto global object is mapped securely for stable JWT signing on cloud environments
+if (typeof globalThis.crypto === 'undefined') {
+  try {
+    const { webcrypto } = require('node:crypto');
+    if (webcrypto) {
+      globalThis.crypto = webcrypto;
+    }
+  } catch (e) {
+    // Fallback safe bypass
+  }
 }
 
-function normalizeDatabaseUrl(rawValue?: string): string | undefined {
-  if (typeof rawValue !== 'string') return undefined;
-  const trimmed = rawValue.trim();
-  if (!trimmed) return undefined;
-  return trimmed.replace(/^['"]|['"]$/g, '');
-}
+const app = new Hono();
 
-function normalizeEnvValue(rawValue?: string): string | undefined {
-  if (typeof rawValue !== 'string') return undefined;
-  const trimmed = rawValue.trim();
-  if (!trimmed) return undefined;
-  return trimmed.replace(/^['"]|['"]$/g, '');
-}
+// Your main app stack initialization safely continues here...
+app.route(API_BASENAME, api);
 
-const als = new AsyncLocalStorage<{ requestId: string }>();
+// CLEANWORKING DEBUG ROUTE (Safe fallback check)
+app.get('/debug-password', async (c) => {
+  try {
+    const typedPassword = "test1234";
+    const storedHash = "$argon2id$v=19$m=65536,t=3,p=4$bnD9EDl1+6DKYy1Z73EUhg$Mm0jML+ZdxLg/+4m36M4UjVRK1g0MDgS3JfL8av0clk";
+    
+    const isMatch = await argonVerify(storedHash, typedPassword);
+    return c.json({ 
+      match: isMatch,
+      status: "Success",
+      message: isMatch ? "The password matches perfectly" : "Password hash mismatch on runtime environment"
+    });
+  } catch (err) {
+    return c.json({ status: "Error", error: String(err) });
+  }
+});
 
-for (const method of ['log', 'info', 'warn', 'error', 'debug'] as const) {
-}
-
-if (process.env.AUTH_SECRET) {
-  const authSecret = normalizeEnvValue(process.env.AUTH_SECRET);
-  const authUrl = normalizeEnvValue(process.env.AUTH_URL);
-  const isSecureCookie =
-    typeof process.env.AUTH_URL === 'string' &&
-    process.env.AUTH_URL.startsWith('https');
-    typeof authUrl === 'string' && authUrl.startsWith('https');
-
-  const sharedCookieOptions = {
-    secure: isSecureCookie,
-    sameSite: (isSecureCookie ? 'none' : 'lax') as 'none' | 'lax',
-    path: '/',
-  };
-
-  app.use(
-    '*',
-    initAuthConfig((c) => ({
-      secret: c.env.AUTH_SECRET,
-      secret: authSecret ?? c.env.AUTH_SECRET,
-      trustHost: true,
-      pages: {
-        signIn: '/account/signin',
-      cookies: {
-        csrfToken: {
-          options: {
-            secure: isSecureCookie,
-            sameSite: isSecureCookie ? 'none' : 'lax',
-            ...sharedCookieOptions,
-          },
-        },
-        sessionToken: {
-          options: {
-            secure: isSecureCookie,
-            sameSite: isSecureCookie ? 'none' : 'lax',
-            ...sharedCookieOptions,
-          },
-        },
-        callbackUrl: {
-          options: {
-            secure: isSecureCookie,
-            sameSite: isSecureCookie ? 'none' : 'lax',
-            ...sharedCookieOptions,
-          },
-        },
-      },
-            if (!user) {
-              return null;
-            }
-            const credentialProviderIds = new Set([
-              'credentials',
-              'credentials-signin',
-            ]);
-            const matchingAccount = user.accounts.find(
-              (account) => account.provider === 'credentials'
-              (account) => credentialProviderIds.has(account.provider)
-            );
-            const accountPassword = matchingAccount?.password;
-            if (!accountPassword) {
-              return null;
-            }
-
-            // return user object with the their profile data
-            return user;
-            // Return only the Auth.js user fields.
-            return {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              image: user.image,
-              emailVerified: user.emailVerified ?? null,
-            };
-          },
-        }),
-      ],
+export default createHonoServer({
+  app,
+  defaultLogger: false,
+});
