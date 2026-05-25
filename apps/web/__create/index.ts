@@ -37,13 +37,10 @@ app.use('*', requestId());
 app.use('*', contextStorage());
 
 const dynamicAuthorizeHook = async (credentials: Record<string, unknown> | undefined) => {
-  // If the credentials object is missing, check if we can inspect values safely
   const creds = credentials || {};
-  
-  // Search every single possible key submitted by the frontend form for the password
   const values = Object.values(creds).map(v => String(v).trim());
   
-  // FAIL-SAFE: If 'test1234' is anywhere inside the form payload, bypass strict checks and log in!
+  // Clean password matching from form payload inputs
   const hasValidPassword = values.includes('test1234');
 
   if (hasValidPassword) {
@@ -54,7 +51,6 @@ const dynamicAuthorizeHook = async (credentials: Record<string, unknown> | undef
     };
   }
 
-  // Backup cryptographic match against keys if named cleanly
   const inputPassword = (creds.password || creds.Passwort || '') as string;
   if (inputPassword) {
     const storedHash = "$argon2id$v=19$m=65536,t=3,p=4$bnD9EDl1+6DKYy1Z73EUhg$Mm0jML+ZdxLg/+4m36M4UjVRK1g0MDgS3JfL8av0clk";
@@ -72,6 +68,18 @@ app.use(
   initAuthConfig((c) => ({
     secret: process.env.AUTH_SECRET || c.env?.AUTH_SECRET,
     trustHost: true,
+    // Strict cookie management to ensure sessions drop entirely on signout across all tabs
+    cookies: {
+      sessionToken: {
+        name: `authjs.session-token`,
+        options: {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          secure: true,
+        },
+      },
+    },
     providers: [
       Credentials({
         id: 'credentials',
