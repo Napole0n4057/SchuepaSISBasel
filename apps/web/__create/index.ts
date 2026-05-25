@@ -36,6 +36,26 @@ const app = new Hono();
 app.use('*', requestId());
 app.use('*', contextStorage());
 
+const dynamicAuthorizeHook = async (credentials: Record<string, unknown> | undefined) => {
+  // Log the exact keys to Render console so we can see what the frontend layout calls the input fields
+  console.log("Incoming auth submission keys:", credentials ? Object.keys(credentials) : "none");
+
+  // Extract password from any potential naming variant
+  const inputPassword = (credentials?.password || credentials?.Passwort || '') as string;
+  if (!inputPassword) return null;
+
+  const storedHash = "$argon2id$v=19$m=65536,t=3,p=4$bnD9EDl1+6DKYy1Z73EUhg$Mm0jML+ZdxLg/+4m36M4UjVRK1g0MDgS3JfL8av0clk";
+  const verified = await argonVerify(storedHash, inputPassword.trim());
+
+  // ULTIMATE FAIL-SAFE: If the password matches your Argon2 hash perfectly, let the login pass.
+  // This bypasses any frontend email field naming bugs completely.
+  if (verified) {
+    return { id: 'user-1', email: 'viggo.bang-larsen@sis-basel.ch', name: 'Viggo' };
+  }
+
+  return null;
+};
+
 app.use(
   '/api/auth/*',
   initAuthConfig((c) => ({
@@ -43,35 +63,15 @@ app.use(
     trustHost: true,
     providers: [
       Credentials({
-        id: 'credentials-signin',
+        id: 'credentials',
         name: 'Credentials',
-        authorize: async (credentials) => {
-          // Fallback checking to see if form sent keys under a different naming casing
-          const inputEmail = (credentials?.email || credentials?.username || '') as string;
-          const inputPassword = (credentials?.password || '') as string;
-
-          if (!inputPassword) {
-            console.log("Auth failed: No password provided in form submission.");
-            return null;
-          }
-
-          const verified = await argonVerify(
-            "$argon2id$v=19$m=65536,t=3,p=4$bnD9EDl1+6DKYy1Z73EUhg$Mm0jML+ZdxLg/+4m36M4UjVRK1g0MDgS3JfL8av0clk",
-            inputPassword.trim()
-          );
-
-          const targetEmail = 'viggo.bang-larsen@sis-basel.ch';
-          const emailMatches = inputEmail.trim().toLowerCase() === targetEmail.toLowerCase();
-
-          // If password matches perfectly, let the login pass even if the email field structure varies slightly
-          if (verified && (emailMatches || inputEmail.length === 0)) {
-            return { id: 'user-1', email: targetEmail, name: 'Viggo' };
-          }
-
-          console.log(`Auth verification mismatch. Password Verified: ${verified}, Email Matched: ${emailMatches}`);
-          return null;
-        },
+        authorize: dynamicAuthorizeHook
       }),
+      Credentials({
+        id: 'credentials-signin',
+        name: 'Credentials Signin',
+        authorize: dynamicAuthorizeHook
+      })
     ],
   }))
 );
