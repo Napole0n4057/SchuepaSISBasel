@@ -263,7 +263,7 @@ const adapter = Adapter(pool);
 
 export const { auth } = CreateAuth({
   providers: [Credentials({
-  id: 'credentials-signin',
+  id: 'credentials',
   name: 'Credentials Sign in',
   credentials: {
     email: {

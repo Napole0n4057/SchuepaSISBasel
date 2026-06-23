@@ -1,13 +1,66 @@
-import { useState } from "react";
-import useAuth from "@/utils/useAuth";
+import { useEffect, useState } from "react";
+import { getCsrfToken, signIn } from "@auth/create/react";
+
+const errorMessages = {
+  OAuthSignin: "Anmeldung nicht möglich / Could not start sign-in",
+  OAuthCallback: "Anmeldung fehlgeschlagen / Sign-in failed",
+  OAuthCreateAccount:
+    "Konto konnte nicht erstellt werden / Could not create account",
+  EmailCreateAccount:
+    "Diese E-Mail kann nicht verwendet werden / This email cannot be used",
+  Callback: "Etwas ist schiefgelaufen / Something went wrong",
+  OAuthAccountNotLinked:
+    "Bitte verwenden Sie eine andere Anmeldemethode / Please use a different sign-in method",
+  CredentialsSignin: "Ungültige E-Mail oder Passwort / Invalid email or password",
+  AccessDenied: "Zugriff verweigert / Access denied",
+  Configuration:
+    "Anmeldung derzeit nicht möglich / Sign-in not available right now",
+  Verification: "Link abgelaufen / Link expired",
+  MissingCSRF:
+    "Sicherheitsprüfung fehlgeschlagen. Bitte erneut versuchen / Security check failed. Please try again",
+};
+
+function getCallbackUrl() {
+  if (typeof window === "undefined") {
+    return "/";
+  }
+
+  return new URLSearchParams(window.location.search).get("callbackUrl") || "/";
+}
 
 export default function SignInPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { signInWithCredentials } = useAuth();
+  useEffect(() => {
+    let cancelled = false;
+
+    const errorCode = new URLSearchParams(window.location.search).get("error");
+    if (errorCode) {
+      setError(
+        errorMessages[errorCode] || "Etwas ist schiefgelaufen / Something went wrong",
+      );
+    }
+
+    getCsrfToken()
+      .then((token) => {
+        if (!cancelled) {
+          setCsrfToken(token);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCsrfToken("");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -22,59 +75,16 @@ export default function SignInPage() {
 
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const normalizedPassword = password;
-
-      const result = await signInWithCredentials({
+      await signIn("credentials", {
         email: normalizedEmail,
-        password: normalizedPassword,
-        callbackUrl: "/",
-        redirect: false,
+        password,
+        redirect: true,
+        callbackUrl: getCallbackUrl(),
       });
-
-      if (result?.error) {
-        throw new Error(result.error);
-      }
-
-      // Some Auth.js setups can resolve signIn() without a stable error object,
-      // so we verify the session before redirecting.
-      const sessionResponse = await fetch("/api/auth/session", {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      });
-      const sessionData = sessionResponse.ok
-        ? await sessionResponse.json()
-        : null;
-
-      if (!sessionData?.user?.id) {
-        throw new Error("CredentialsSignin");
-      }
-
-      const destination = result?.url || "/";
-      window.location.href = destination;
     } catch (err) {
-      const errorMessages = {
-        OAuthSignin: "Anmeldung nicht möglich / Could not start sign-in",
-        OAuthCallback: "Anmeldung fehlgeschlagen / Sign-in failed",
-        OAuthCreateAccount:
-          "Konto konnte nicht erstellt werden / Could not create account",
-        EmailCreateAccount:
-          "Diese E-Mail kann nicht verwendet werden / This email cannot be used",
-        Callback: "Etwas ist schiefgelaufen / Something went wrong",
-        OAuthAccountNotLinked:
-          "Bitte verwenden Sie eine andere Anmeldemethode / Please use a different sign-in method",
-        CredentialsSignin:
-          "Ungültige E-Mail oder Passwort / Invalid email or password",
-        AccessDenied: "Zugriff verweigert / Access denied",
-        Configuration:
-          "Anmeldung derzeit nicht möglich / Sign-in not available right now",
-        Verification: "Link abgelaufen / Link expired",
-        SessionCheckFailed:
-          "Anmeldung konnte nicht bestätigt werden / Could not confirm sign-in",
-      };
-
+      const errorCode = err instanceof Error ? err.message : undefined;
       setError(
-        errorMessages[err.message] ||
+        errorMessages[errorCode] ||
           "Etwas ist schiefgelaufen / Something went wrong",
       );
     } finally {
@@ -89,6 +99,7 @@ export default function SignInPage() {
         onSubmit={onSubmit}
         className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg border border-gray-200"
       >
+        <input type="hidden" name="csrfToken" value={csrfToken} readOnly />
         <div className="mb-8 flex justify-center">
           <a href="/" aria-label="Zur Startseite / Back to Home">
             <img
