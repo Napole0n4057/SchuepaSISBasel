@@ -72,6 +72,10 @@ export default function AdminPage() {
       // Fetch current user role
       const roleRes = await fetch("/api/user-roles/get");
       const roleData = await roleRes.json();
+      if (!roleRes.ok || !roleData.role) {
+        throw new Error(roleData.error || "Failed to load current user role");
+      }
+
       setCurrentUserRole(roleData.role);
 
       if (
@@ -88,6 +92,10 @@ export default function AdminPage() {
       // Fetch all users
       const usersRes = await fetch("/api/user-roles/list");
       const usersData = await usersRes.json();
+      if (!usersRes.ok) {
+        throw new Error(usersData.error || "Failed to load users");
+      }
+
       setUsers(usersData.users || []);
 
       setLoading(false);
@@ -102,6 +110,10 @@ export default function AdminPage() {
     try {
       setError(null);
       setSuccess(null);
+
+      if (currentUserRole?.designation !== "admin") {
+        throw new Error("Admin access required");
+      }
 
       const res = await fetch("/api/user-roles/update", {
         method: "POST",
@@ -242,6 +254,42 @@ export default function AdminPage() {
 
   const isAdmin = currentUserRole?.designation === "admin";
   const isSpectator = currentUserRole?.designation === "spectator";
+  const hasAdminAccess = isAdmin || isSpectator;
+
+  if (!hasAdminAccess) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+        <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-lg border border-gray-200">
+          <div className="mb-8 flex justify-center">
+            <a href="/" aria-label="Zur Startseite / Back to Home">
+              <img
+                src="/sis-student-parliament-logo.png"
+                alt="SIS Basel Logo"
+                className="h-24 w-auto"
+              />
+            </a>
+          </div>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">
+            Zugriff verweigert
+          </h1>
+          <p className="mb-6 text-gray-600">
+            Access denied - this area is only for admins and spectators.
+          </p>
+          {error && (
+            <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+          <a
+            href="/"
+            className="inline-block rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
+          >
+            Zur Startseite / Back to Home
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   // Filter users based on search
   const filteredUsers = users.filter((u) =>
@@ -295,8 +343,8 @@ export default function AdminPage() {
         {isSpectator && (
           <div className="mb-6 rounded-md bg-blue-50 border border-blue-200 p-4 text-sm text-blue-600">
             Sie sind Zuschauer - Sie können alles sehen, aber nur
-            Administratorenrechte verwalten / You are a spectator - You can view
-            everything but only manage admin rights
+            Administratoren können Änderungen vornehmen / You are a spectator -
+            you can view everything, but only admins can make changes
           </div>
         )}
 
@@ -360,17 +408,25 @@ export default function AdminPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex flex-wrap items-center gap-2">
-                        <select
-                          value={u.designation}
-                          onChange={(e) =>
-                            handleRoleChange(u.user_id, e.target.value)
-                          }
-                          className="rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
-                        >
-                          <option value="member">Mitglied / Member</option>
-                          <option value="admin">Admin</option>
-                          <option value="spectator">Zuschauer / Spectator</option>
-                        </select>
+                        {isAdmin ? (
+                          <select
+                            value={u.designation}
+                            onChange={(e) =>
+                              handleRoleChange(u.user_id, e.target.value)
+                            }
+                            className="rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                          >
+                            <option value="member">Mitglied / Member</option>
+                            <option value="admin">Admin</option>
+                            <option value="spectator">
+                              Zuschauer / Spectator
+                            </option>
+                          </select>
+                        ) : (
+                          <span className="text-xs text-gray-500">
+                            Nur ansehen / Read only
+                          </span>
+                        )}
                         {isAdmin && u.designation === "member" && (
                           <button
                             onClick={() => handleResetPassword(u.user_id, u.email)}

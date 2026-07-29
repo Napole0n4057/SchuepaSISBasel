@@ -8,7 +8,7 @@ export async function POST(request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if current user is admin (spectators can see but not modify, but they CAN promote/demote)
+    // Check if current user is admin
     const currentUserRole = await sql`
       SELECT designation
       FROM user_roles
@@ -18,11 +18,10 @@ export async function POST(request) {
 
     if (
       currentUserRole.length === 0 ||
-      (currentUserRole[0].designation !== "admin" &&
-        currentUserRole[0].designation !== "spectator")
+      currentUserRole[0].designation !== "admin"
     ) {
       return Response.json(
-        { error: "Forbidden - Admin or Spectator access required" },
+        { error: "Forbidden - Admin access required" },
         { status: 403 },
       );
     }
