@@ -63,15 +63,18 @@ export default function SettingsPage() {
           default_anonymous: defaultAnonymous,
         }),
       });
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error("Failed to update settings");
+        throw new Error(
+          data?.error || `Unable to save settings (HTTP ${res.status})`,
+        );
       }
 
       setSuccess("Einstellungen gespeichert / Settings saved");
     } catch (err) {
       console.error(err);
-      setError("Fehler beim Speichern / Error saving settings");
+      setError(err instanceof Error ? err.message : "Unable to save settings");
     }
   };
 
