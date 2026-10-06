@@ -92,16 +92,38 @@ if (process.env.CORS_ORIGINS) {
     })
   );
 }
-for (const method of ['post', 'put', 'patch'] as const) {
-  app[method](
-    '*',
-    bodyLimit({
-      maxSize: 4.5 * 1024 * 1024, // 4.5mb to match vercel limit
-      onError: (c) => {
+const MAX_BODY_SIZE = 4.5 * 1024 * 1024;
+
+if (import.meta.env.DEV) {
+  // Vite's dev server provides a Request implementation that Hono's
+  // bodyLimit middleware cannot safely re-wrap with `new Request(...)`.
+  // Check the declared size without replacing the Request object.
+  for (const method of ['post', 'put', 'patch'] as const) {
+    app[method]('*', async (c, next) => {
+      const contentLength = c.req.header('content-length');
+
+      if (
+        contentLength &&
+        Number.parseInt(contentLength, 10) > MAX_BODY_SIZE
+      ) {
         return c.json({ error: 'Body size limit exceeded' }, 413);
-      },
-    })
-  );
+      }
+
+      return next();
+    });
+  }
+} else {
+  for (const method of ['post', 'put', 'patch'] as const) {
+    app[method](
+      '*',
+      bodyLimit({
+        maxSize: MAX_BODY_SIZE,
+        onError: (c) => {
+          return c.json({ error: 'Body size limit exceeded' }, 413);
+        },
+      })
+    );
+  }
 }
 
 app.use(

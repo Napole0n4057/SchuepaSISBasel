@@ -1,4 +1,4 @@
-import sql from "../../../app/api/utils/sql.js";
+import sql from "../utils/sql.js";
 import { auth } from "../../../auth.js";
 
 export async function POST() {
