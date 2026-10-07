@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
+import ProfileAvatar from "@/components/ProfileAvatar";
 
 export default function ForumPage() {
   const { data: user, loading: userLoading } = useUser();
@@ -273,7 +274,11 @@ export default function ForumPage() {
                   {post.title}
                 </h3>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="h-8 w-8 rounded-full bg-gray-200 border border-gray-300" />
+                  <ProfileAvatar
+                    src={post.profile_picture}
+                    name={post.author_name}
+                    className="h-8 w-8"
+                  />
                   <div className="text-sm text-gray-600">
                     {post.author_name}
                     <span className="mx-2">•</span>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import useUser from "@/utils/useUser";
+import ProfileAvatar from "@/components/ProfileAvatar";
 
 export default function ForumPostPage() {
   const { data: user, loading: userLoading } = useUser();
@@ -214,7 +215,11 @@ export default function ForumPostPage() {
               {post.title}
             </h2>
             <div className="flex items-center gap-3 mb-4 text-sm text-gray-600">
-              <div className="h-8 w-8 rounded-full bg-gray-200 border border-gray-300" />
+              <ProfileAvatar
+                src={post.profile_picture}
+                name={post.author_name}
+                className="h-8 w-8"
+              />
               <span>{post.author_name}</span>
               <span>•</span>
               <span>{new Date(post.created_at).toLocaleDateString()}</span>
@@ -262,7 +267,11 @@ export default function ForumPostPage() {
               className="rounded-lg bg-white p-6 shadow-md border border-gray-200"
             >
               <div className="flex items-center gap-3 mb-3 text-sm text-gray-600">
-                <div className="h-8 w-8 rounded-full bg-gray-200 border border-gray-300" />
+                <ProfileAvatar
+                  src={comment.profile_picture}
+                  name={comment.author_name}
+                  className="h-8 w-8"
+                />
                 <span>{comment.author_name}</span>
                 <span>•</span>
                 <span>{new Date(comment.created_at).toLocaleDateString()}</span>

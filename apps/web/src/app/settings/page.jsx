@@ -1,34 +1,37 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useUser from "@/utils/useUser";
+import ProfileAvatar from "@/components/ProfileAvatar";
+import { extractNameFromEmail } from "@/app/api/utils/nameHelper.js";
+
+const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const maxImageSize = 5 * 1024 * 1024;
 
 export default function SettingsPage() {
   const { data: user, loading: userLoading } = useUser();
   const [profilePicture, setProfilePicture] = useState("");
+  const [selectedImagePreview, setSelectedImagePreview] = useState("");
+  const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
   const [defaultAnonymous, setDefaultAnonymous] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [displayName, setDisplayName] = useState("");
+  const fileInputRef = useRef(null);
+  const displayName =
+    (typeof user?.name === "string" && user.name.trim()) ||
+    extractNameFromEmail(user?.email);
+  const displayedProfilePicture =
+    selectedImagePreview || (removeProfilePicture ? "" : profilePicture);
 
   useEffect(() => {
     if (!userLoading && user) {
       fetchSettings();
-      extractDisplayName();
     }
   }, [user, userLoading]);
 
-  const extractDisplayName = () => {
-    if (!user?.email) return;
-
-    const localPart = user.email.split("@")[0];
-    const name = localPart
-      .replace(/[._-]/g, " ")
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(" ");
-
-    setDisplayName(name);
-  };
+  useEffect(() => {
+    if (!selectedImagePreview) return undefined;
+    return () => URL.revokeObjectURL(selectedImagePreview);
+  }, [selectedImagePreview]);
 
   const fetchSettings = async () => {
     try {
@@ -59,8 +62,8 @@ export default function SettingsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          profile_picture: profilePicture,
           default_anonymous: defaultAnonymous,
+          ...(removeProfilePicture ? { profile_picture: null } : {}),
         }),
       });
       const data = await res.json().catch(() => null);
@@ -71,11 +74,43 @@ export default function SettingsPage() {
         );
       }
 
-      setSuccess("Einstellungen gespeichert / Settings saved");
+      setSuccess(
+        selectedImagePreview
+          ? "Einstellungen gespeichert. Das ausgewählte Bild ist nur eine Vorschau und wurde nicht dauerhaft gespeichert."
+          : "Einstellungen gespeichert / Settings saved",
+      );
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Unable to save settings");
     }
+  };
+
+  const handleImageSelection = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!allowedImageTypes.has(file.type)) {
+      setError("Bitte wählen Sie eine JPG-, PNG- oder WebP-Bilddatei aus.");
+      return;
+    }
+
+    if (file.size > maxImageSize) {
+      setError("Das Bild darf höchstens 5 MB groß sein.");
+      return;
+    }
+
+    setSelectedImagePreview(URL.createObjectURL(file));
+    setRemoveProfilePicture(false);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleRemoveProfilePicture = () => {
+    setSelectedImagePreview("");
+    setRemoveProfilePicture(true);
+    setError(null);
+    setSuccess(null);
   };
 
   if (userLoading || loading) {
@@ -130,7 +165,7 @@ export default function SettingsPage() {
 
         <div className="rounded-lg bg-white p-6 shadow-md border border-gray-200">
           <form onSubmit={handleSave} className="space-y-6">
-            {/* Display Name (read-only) */}
+            {/* Account name (read-only) */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Anzeigename / Display Name
@@ -139,35 +174,55 @@ export default function SettingsPage() {
                 {displayName}
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Automatisch aus Ihrer E-Mail generiert / Auto-generated from
-                your email
+                Aus Ihrem angemeldeten Konto / From your signed-in account
               </p>
             </div>
 
-            {/* Profile Picture URL */}
+            {/* Profile picture upload preview */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Profilbild URL / Profile Picture URL
+                Profilbild / Profile picture
               </label>
-              <input
-                type="url"
-                value={profilePicture}
-                onChange={(e) => setProfilePicture(e.target.value)}
-                placeholder="https://example.com/picture.jpg"
-                className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
-              />
-              {profilePicture && (
-                <div className="mt-3">
-                  <img
-                    src={profilePicture}
-                    alt="Profile Preview"
-                    className="h-24 w-24 rounded-full object-cover border-2 border-gray-200"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                    }}
+              <div className="flex flex-wrap items-center gap-4">
+                <ProfileAvatar
+                  src={displayedProfilePicture}
+                  name={displayName}
+                  className="h-20 w-20"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageSelection}
+                    className="sr-only"
+                    aria-label="Profilbild auswählen / Choose profile picture"
                   />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50"
+                  >
+                    {displayedProfilePicture
+                      ? "Profilbild ändern / Change profile picture"
+                      : "Profilbild hochladen / Upload profile picture"}
+                  </button>
+                  {displayedProfilePicture && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveProfilePicture}
+                      className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Profilbild entfernen / Remove picture
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                JPG, PNG oder WebP, maximal 5 MB. Ausgewählte Bilder werden
+                derzeit nur als Vorschau angezeigt und noch nicht dauerhaft
+                gespeichert.
+              </p>
             </div>
 
             {/* Default Anonymous */}
