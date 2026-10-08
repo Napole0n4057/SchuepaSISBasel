@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
+import { messageKeyFromError, useLanguage } from "@/i18n";
 
 export default function ForumPage() {
   const { data: user, loading: userLoading } = useUser();
+  const { language, t } = useLanguage();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,7 +56,7 @@ export default function ForumPage() {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setError("Fehler beim Laden / Error loading posts");
+      setError("Error loading posts");
       setLoading(false);
     }
   };
@@ -63,7 +65,7 @@ export default function ForumPage() {
     e.preventDefault();
 
     if (!newTitle.trim() || !newContent.trim()) {
-      setError("Titel und Inhalt erforderlich / Title and content required");
+      setError("Title and content are required");
       return;
     }
 
@@ -85,7 +87,7 @@ export default function ForumPage() {
         throw new Error("Failed to create post");
       }
 
-      setSuccess("Beitrag erstellt / Post created");
+      setSuccess("Post created");
       setShowCreateForm(false);
       setNewTitle("");
       setNewContent("");
@@ -93,7 +95,7 @@ export default function ForumPage() {
       fetchPosts();
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(messageKeyFromError(err.message, "Failed to create post"));
     }
   };
 
@@ -117,7 +119,7 @@ export default function ForumPage() {
 
   const handleDeletePost = async (postId) => {
     const confirmed = window.confirm(
-      "Diesen Beitrag löschen? / Delete this post?",
+      t("Delete this post?"),
     );
     if (!confirmed) return;
 
@@ -136,34 +138,34 @@ export default function ForumPage() {
         throw new Error(data.error || "Failed to delete post");
       }
 
-      setSuccess("Beitrag gelöscht / Post removed");
+      setSuccess("Post removed");
       fetchPosts();
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(messageKeyFromError(err.message, "Failed to delete post"));
     }
   };
 
   if (userLoading || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
-        <p className="text-lg text-gray-600">Lädt... / Loading...</p>
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+        <p className="text-lg text-gray-600">{t("Loading...")}</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center">
           <p className="mb-4 text-lg text-gray-600">
-            Bitte melden Sie sich an / Please sign in
+            {t("Please sign in")}
           </p>
           <a
             href="/account/signin"
             className="text-gray-900 hover:text-gray-700 font-medium"
           >
-            Zur Anmeldung / Go to Sign In
+            {t("Go to sign in")}
           </a>
         </div>
       </div>
@@ -171,15 +173,15 @@ export default function ForumPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+    <div className="app-page min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Community Forum
+              {t("Community Forum")}
             </h1>
             <a href="/" className="text-sm text-gray-600 hover:text-gray-900">
-              ← Zurück zur Startseite / Back to Home
+              {t("Back to home")}
             </a>
           </div>
 
@@ -188,20 +190,20 @@ export default function ForumPage() {
             className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
           >
             {showCreateForm
-              ? "Abbrechen / Cancel"
-              : "Beitrag erstellen / Create Post"}
+              ? t("Cancel")
+              : t("Create a post")}
           </button>
         </div>
 
         {error && (
           <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-600">
-            {error}
+            {t(error)}
           </div>
         )}
 
         {success && (
           <div className="mb-6 rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-600">
-            {success}
+            {t(success)}
           </div>
         )}
 
@@ -209,12 +211,12 @@ export default function ForumPage() {
         {showCreateForm && (
           <div className="mb-8 rounded-lg bg-white p-6 shadow-md border border-gray-200">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Neuer Beitrag / New Post
+              {t("New post")}
             </h2>
             <form onSubmit={handleCreatePost} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Titel / Title *
+                  {t("Title *")}
                 </label>
                 <input
                   type="text"
@@ -227,7 +229,7 @@ export default function ForumPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Inhalt / Content *
+                  {t("Content *")}
                 </label>
                 <textarea
                   value={newContent}
@@ -247,7 +249,7 @@ export default function ForumPage() {
                     className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
                   />
                   <span className="text-sm font-semibold text-gray-900">
-                    Anonym posten / Post anonymously
+                    {t("Post anonymously")}
                   </span>
                 </label>
               </div>
@@ -256,7 +258,7 @@ export default function ForumPage() {
                 type="submit"
                 className="w-full rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
               >
-                Beitrag erstellen / Create Post
+                {t("Create a post")}
               </button>
             </form>
           </div>
@@ -276,13 +278,13 @@ export default function ForumPage() {
                 <div className="flex items-center gap-3 mb-3">
                   <ProfileAvatar
                     src={post.profile_picture}
-                    name={post.author_name}
+                    name={post.author_name === "Anonymous" ? t("Anonymous") : post.author_name}
                     className="h-8 w-8"
                   />
                   <div className="text-sm text-gray-600">
-                    {post.author_name}
+                    {post.author_name === "Anonymous" ? t("Anonymous") : post.author_name}
                     <span className="mx-2">•</span>
-                    {new Date(post.created_at).toLocaleDateString()}
+                    {new Date(post.created_at).toLocaleDateString(language === "de" ? "de-CH" : "en-GB")}
                   </div>
                 </div>
                 <p className="text-gray-700 whitespace-pre-wrap">
@@ -312,14 +314,14 @@ export default function ForumPage() {
                   href={`/forum/${post.id}`}
                   className="text-sm text-gray-600 hover:text-gray-900"
                 >
-                  {post.comment_count} Kommentare / Comments
+                  {t("Comments: {count}", { count: post.comment_count })}
                 </a>
                 {userRole?.designation === "admin" && (
                   <button
                     onClick={() => handleDeletePost(post.id)}
                     className="ml-auto rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
                   >
-                    Beitrag entfernen / Remove
+                    {t("Remove post")}
                   </button>
                 )}
               </div>
@@ -328,7 +330,7 @@ export default function ForumPage() {
 
           {posts.length === 0 && (
             <div className="rounded-lg bg-white p-12 shadow-md border border-gray-200 text-center">
-              <p className="text-gray-500">Keine Beiträge / No posts yet</p>
+              <p className="text-gray-500">{t("No posts yet")}</p>
             </div>
           )}
         </div>

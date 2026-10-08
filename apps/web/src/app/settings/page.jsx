@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import { extractNameFromEmail } from "@/app/api/utils/nameHelper.js";
+import { messageKeyFromError, useLanguage } from "@/i18n";
 
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageSize = 5 * 1024 * 1024;
 
 export default function SettingsPage() {
   const { data: user, loading: userLoading } = useUser();
+  const { language, setLanguage, t } = useLanguage();
   const [profilePicture, setProfilePicture] = useState("");
   const [selectedImagePreview, setSelectedImagePreview] = useState("");
   const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
@@ -46,7 +48,7 @@ export default function SettingsPage() {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setError("Fehler beim Laden der Einstellungen / Error loading settings");
+      setError("Could not load settings");
       setLoading(false);
     }
   };
@@ -69,19 +71,17 @@ export default function SettingsPage() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(
-          data?.error || `Unable to save settings (HTTP ${res.status})`,
-        );
+        throw new Error(data?.error || "Unable to save settings");
       }
 
       setSuccess(
         selectedImagePreview
-          ? "Einstellungen gespeichert. Das ausgewählte Bild ist nur eine Vorschau und wurde nicht dauerhaft gespeichert."
-          : "Einstellungen gespeichert / Settings saved",
+          ? "The selected image is only a preview and has not been stored permanently."
+          : "Settings saved",
       );
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Unable to save settings");
+      setError(messageKeyFromError(err instanceof Error ? err.message : "", "Could not save settings"));
     }
   };
 
@@ -91,12 +91,12 @@ export default function SettingsPage() {
     if (!file) return;
 
     if (!allowedImageTypes.has(file.type)) {
-      setError("Bitte wählen Sie eine JPG-, PNG- oder WebP-Bilddatei aus.");
+      setError("Choose a JPG, PNG, or WebP image.");
       return;
     }
 
     if (file.size > maxImageSize) {
-      setError("Das Bild darf höchstens 5 MB groß sein.");
+      setError("The image must be 5 MB or smaller.");
       return;
     }
 
@@ -115,24 +115,24 @@ export default function SettingsPage() {
 
   if (userLoading || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
-        <p className="text-lg text-gray-600">Lädt... / Loading...</p>
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+        <p className="text-lg text-gray-600">{t("Loading...")}</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center">
           <p className="mb-4 text-lg text-gray-600">
-            Bitte melden Sie sich an / Please sign in
+            {t("Please sign in")}
           </p>
           <a
             href="/account/signin"
             className="text-gray-900 hover:text-gray-700 font-medium"
           >
-            Zur Anmeldung / Go to Sign In
+            {t("Go to sign in")}
           </a>
         </div>
       </div>
@@ -140,48 +140,63 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+    <div className="app-page min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Einstellungen / Settings
+            {t("Settings")}
           </h1>
           <a href="/" className="text-sm text-gray-600 hover:text-gray-900">
-            ← Zurück zur Startseite / Back to Home
+            {t("Back to home")}
           </a>
         </div>
 
         {error && (
           <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-600">
-            {error}
+            {t(error)}
           </div>
         )}
 
         {success && (
           <div className="mb-6 rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-600">
-            {success}
+            {t(success)}
           </div>
         )}
 
         <div className="rounded-lg bg-white p-6 shadow-md border border-gray-200">
           <form onSubmit={handleSave} className="space-y-6">
+            <div>
+              <label htmlFor="language" className="mb-2 block text-sm font-semibold text-gray-900">
+                {t("Language")}
+              </label>
+              <select
+                id="language"
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+              >
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+
             {/* Account name (read-only) */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Anzeigename / Display Name
+                {t("Display name")}
               </label>
               <div className="rounded-md border border-gray-300 bg-gray-50 px-4 py-2 text-gray-600">
                 {displayName}
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Aus Ihrem angemeldeten Konto / From your signed-in account
+                {t("From your signed-in account")}
               </p>
             </div>
 
             {/* Profile picture upload preview */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Profilbild / Profile picture
+                {t("Profile picture")}
               </label>
               <div className="flex flex-wrap items-center gap-4">
                 <ProfileAvatar
@@ -196,7 +211,7 @@ export default function SettingsPage() {
                     accept="image/jpeg,image/png,image/webp"
                     onChange={handleImageSelection}
                     className="sr-only"
-                    aria-label="Profilbild auswählen / Choose profile picture"
+                    aria-label={t("Choose profile picture")}
                   />
                   <button
                     type="button"
@@ -204,8 +219,8 @@ export default function SettingsPage() {
                     className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50"
                   >
                     {displayedProfilePicture
-                      ? "Profilbild ändern / Change profile picture"
-                      : "Profilbild hochladen / Upload profile picture"}
+                      ? t("Change profile picture")
+                      : t("Upload profile picture")}
                   </button>
                   {displayedProfilePicture && (
                     <button
@@ -213,15 +228,13 @@ export default function SettingsPage() {
                       onClick={handleRemoveProfilePicture}
                       className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
-                      Profilbild entfernen / Remove picture
+                      {t("Remove picture")}
                     </button>
                   )}
                 </div>
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                JPG, PNG oder WebP, maximal 5 MB. Ausgewählte Bilder werden
-                derzeit nur als Vorschau angezeigt und noch nicht dauerhaft
-                gespeichert.
+                {t("JPG, PNG or WebP, maximum 5 MB. Selected images are only previewed and are not stored permanently yet.")}
               </p>
             </div>
 
@@ -235,12 +248,11 @@ export default function SettingsPage() {
                   className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
                 />
                 <span className="text-sm font-semibold text-gray-900">
-                  Standardmäßig anonym posten / Post anonymously by default
+                  {t("Default anonymity")}
                 </span>
               </label>
               <p className="mt-1 ml-7 text-xs text-gray-500">
-                Sie können dies für jeden Beitrag ändern / You can change this
-                for each post
+                {t("You can change this for each post")}
               </p>
             </div>
 
@@ -248,7 +260,7 @@ export default function SettingsPage() {
               type="submit"
               className="w-full rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
             >
-              Speichern / Save
+              {t("Save")}
             </button>
           </form>
         </div>

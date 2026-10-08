@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
+import { useLanguage } from "@/i18n";
 
 export default function HomePage() {
   const { data: user, loading: userLoading } = useUser();
+  const { language, t } = useLanguage();
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [blogPosts, setBlogPosts] = useState([]);
@@ -40,34 +42,32 @@ export default function HomePage() {
 
   if (userLoading || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
-        <p className="text-lg text-gray-600">Lädt... / Loading...</p>
+      <div className="app-page flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+        <p className="text-lg text-gray-600">{t("Loading...")}</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <div className="app-page flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center max-w-md">
-          <a href="/" aria-label="Zur Startseite / Back to Home">
+          <a href="/" aria-label={t("Home")}>
             <img
               src="/sis-student-parliament-logo.png"
-              alt="SIS Basel Logo"
+              alt={t("SIS Basel logo")}
               className="mx-auto mb-8 h-32 w-auto"
             />
           </a>
-          <h1 className="mb-4 text-3xl font-bold text-gray-900">Willkommen</h1>
-          <p className="mb-8 text-lg text-gray-600">Welcome</p>
+          <h1 className="mb-4 text-3xl font-bold text-gray-900">{t("Welcome")}</h1>
           <a
             href="/account/signin"
             className="inline-block rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
           >
-            Anmelden / Sign In
+            {t("Sign in")}
           </a>
           <p className="mt-4 text-sm text-gray-600">
-            Zugang nur mit freigeschaltetem Schulkonto / Access requires a
-            school-approved account
+            {t("Sign-in access requires a school-approved account")}
           </p>
         </div>
       </div>
@@ -78,23 +78,23 @@ export default function HomePage() {
     userRole?.designation === "admin" || userRole?.designation === "spectator";
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+    <div className="app-page min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <a href="/" aria-label="Zur Startseite / Back to Home">
+            <a href="/" aria-label={t("Home")}>
               <img
                 src="/sis-student-parliament-logo.png"
-                alt="SIS Basel Logo"
+                alt={t("SIS Basel logo")}
                 className="h-16 w-auto"
               />
             </a>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                SIS Basel School Council
+                {t("SIS Basel School Council")}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                Willkommen / Welcome, {user.name || user.email}
+                {t("Welcome, {name}", { name: user.name || user.email })}
               </p>
             </div>
           </div>
@@ -103,13 +103,13 @@ export default function HomePage() {
               href="/settings"
               className="rounded-md bg-white border border-gray-300 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50"
             >
-              Einstellungen / Settings
+              {t("Settings")}
             </a>
             <a
               href="/account/logout"
               className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
             >
-              Abmelden / Logout
+              {t("Log out")}
             </a>
           </div>
         </div>
@@ -121,10 +121,10 @@ export default function HomePage() {
             className="rounded-lg bg-white p-6 shadow-md border border-gray-200 hover:border-gray-900 transition-colors"
           >
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Abstimmungen / Votes
+              {t("Votes")}
             </h3>
             <p className="text-sm text-gray-600">
-              Abstimmen und Ergebnisse sehen / Vote and view results
+              {t("Vote and view results")}
             </p>
           </a>
 
@@ -133,10 +133,10 @@ export default function HomePage() {
             className="rounded-lg bg-white p-6 shadow-md border border-gray-200 hover:border-gray-900 transition-colors"
           >
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Community Forum
+              {t("Community Forum")}
             </h3>
             <p className="text-sm text-gray-600">
-              Diskutieren und teilen / Discuss and share
+              {t("Discuss and share")}
             </p>
           </a>
 
@@ -146,10 +146,10 @@ export default function HomePage() {
               className="rounded-lg bg-white p-6 shadow-md border border-gray-200 hover:border-gray-900 transition-colors"
             >
               <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Verwaltung / Admin
+                {t("Administration")}
               </h3>
               <p className="text-sm text-gray-600">
-                Benutzer und Rollen verwalten / Manage users and roles
+                {t("Manage users and roles")}
               </p>
             </a>
           )}
@@ -159,14 +159,14 @@ export default function HomePage() {
         <div className="rounded-lg bg-white p-6 shadow-md border border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">
-              Offizieller Blog / Official Blog
+              {t("Official Blog")}
             </h2>
             {userRole?.designation === "admin" && (
               <a
                 href="/blog/create"
                 className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
               >
-                Beitrag erstellen / Create Post
+                {t("Create post")}
               </a>
             )}
           </div>
@@ -185,7 +185,7 @@ export default function HomePage() {
                     <span>{post.author_name}</span>
                     <span>•</span>
                     <span>
-                      {new Date(post.created_at).toLocaleDateString()}
+                      {new Date(post.created_at).toLocaleDateString(language === "de" ? "de-CH" : "en-GB")}
                     </span>
                   </div>
                   <p className="text-gray-700 line-clamp-3">{post.content}</p>
@@ -194,7 +194,7 @@ export default function HomePage() {
             </div>
           ) : (
             <p className="text-gray-500 text-center py-8">
-              Keine Blogbeiträge / No blog posts yet
+              {t("No blog posts yet")}
             </p>
           )}
         </div>

@@ -2,8 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --blue-950: #102f4d;
+  --blue-900: #16466f;
+  --blue-800: #1d5e91;
+  --blue-700: #2877ad;
+  --blue-600: #3188c2;
+  --blue-100: #e5f1fa;
+  --blue-50: #f3f8fc;
+  --ink: #183047;
+  --body-text: #314b63;
+  --muted-text: #536c83;
+  --soft-text: #5e7489;
+  --line: #d4e0eb;
+  --canvas: #f4f8fc;
+}
+
 @layer base {
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    color: var(--ink);
+    background: var(--canvas);
+  }
+
   input, textarea, select, button {
     @apply outline-none focus:outline-none;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--blue-600) 42%, transparent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--blue-100);
+  }
+}
+
+@layer components {
+  .app-page {
+    min-height: 100vh;
+    background-color: var(--canvas);
+    background-image:
+      linear-gradient(rgba(244, 248, 252, 0.982), rgba(244, 248, 252, 0.982)),
+      url('/sis-student-parliament-logo.png');
+    background-repeat: no-repeat;
+    background-position: center, right clamp(1.25rem, 7vw, 7rem) bottom 2.5rem;
+    background-size: 100% 100%, clamp(11rem, 32vw, 27rem) auto;
+  }
+
+}
+
+@layer utilities {
+  .bg-gray-50 { background-color: var(--blue-50); }
+  .bg-gray-100 { background-color: #eaf2f8; }
+  .bg-gray-200 { background-color: #dce8f1; }
+  .bg-gray-900 { background-color: var(--blue-900); }
+  .bg-gray-800 { background-color: var(--blue-950); }
+  .text-gray-900 { color: var(--blue-950); }
+  .text-gray-800 { color: #1a3d5d; }
+  .text-gray-700 { color: var(--body-text); }
+  .text-gray-600 { color: var(--muted-text); }
+  .text-gray-500 { color: var(--soft-text); }
+  .text-gray-400 { color: var(--muted-text); }
+  .border-gray-200 { border-color: #e0e9f1; }
+  .border-gray-300 { border-color: #cbd9e5; }
+  .border-gray-900 { border-color: var(--blue-700); }
+  .bg-blue-50 { background-color: var(--blue-50); }
+  .bg-blue-100 { background-color: var(--blue-100); }
+  .border-blue-200 { border-color: #b7d2e6; }
+  .text-blue-600,
+  .text-blue-800 { color: var(--blue-800); }
+  .text-blue-900 { color: var(--blue-950); }
+
+  .hover\:bg-gray-50:hover { background-color: #edf5fb; }
+  .hover\:bg-gray-800:hover { background-color: var(--blue-950); }
+  .hover\:border-gray-300:hover { border-color: #91b3cf; }
+  .hover\:border-gray-900:hover { border-color: var(--blue-700); }
+  .hover\:text-gray-900:hover { color: var(--blue-800); }
+  .focus\:border-gray-900:focus { border-color: var(--blue-600); }
+  .focus-within\:border-gray-900:focus-within { border-color: var(--blue-600); }
+  .focus\:ring-gray-900:focus,
+  .focus-within\:ring-gray-900:focus-within { --tw-ring-color: var(--blue-600); }
+  .app-page a.text-gray-600,
+  .app-page a.text-gray-900 { color: var(--blue-700); }
+  .app-page a.hover\:text-gray-900:hover { color: var(--blue-950); }
+}
+
+@media (max-width: 640px) {
+  .app-page {
+    background-position: center, right 1rem bottom 1.5rem;
+    background-size: 100% 100%, min(54vw, 15rem) auto;
   }
 }

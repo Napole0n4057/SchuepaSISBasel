@@ -1,10 +1,15 @@
 import * as React from "react";
+import { useLanguage } from "@/i18n";
 
 export default function ProfileAvatar({ src, name, className = "" }) {
+  const { t } = useLanguage();
   const [failedSource, setFailedSource] = React.useState(null);
 
   const hasImage = Boolean(src) && failedSource !== src;
-  const label = name ? `${name} profile picture` : "Profile picture";
+  const accessibleName = name === "Anonymous" ? t("Anonymous") : name;
+  const label = accessibleName
+    ? t("Profile picture for {name}", { name: accessibleName })
+    : t("Profile picture");
 
   return (
     <span

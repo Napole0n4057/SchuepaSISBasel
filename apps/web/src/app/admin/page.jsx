@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
+import { messageKeyFromError, useLanguage } from "@/i18n";
 
 function parseUsersFromText(rawText) {
   const lines = rawText.trim().split("\n");
@@ -44,6 +45,7 @@ function parseUsersFromText(rawText) {
 
 export default function AdminPage() {
   const { data: user, loading: userLoading } = useUser();
+  const { t } = useLanguage();
   const [users, setUsers] = useState([]);
   const [currentUserRole, setCurrentUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,9 +84,7 @@ export default function AdminPage() {
         roleData.role.designation !== "admin" &&
         roleData.role.designation !== "spectator"
       ) {
-        setError(
-          "Zugriff verweigert - Nur für Administratoren und Zuschauer / Access denied - Admin or Spectator only",
-        );
+        setError("Only admins and spectators can access this page");
         setLoading(false);
         return;
       }
@@ -101,7 +101,7 @@ export default function AdminPage() {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setError("Fehler beim Laden der Daten / Error loading data");
+      setError("Error loading user data");
       setLoading(false);
     }
   };
@@ -125,11 +125,11 @@ export default function AdminPage() {
         throw new Error("Failed to update role");
       }
 
-      setSuccess("Rolle erfolgreich aktualisiert / Role updated successfully");
+      setSuccess("Role updated successfully");
       fetchData();
     } catch (err) {
       console.error(err);
-      setError("Fehler beim Aktualisieren der Rolle / Error updating role");
+      setError("Error updating role");
     }
   };
 
@@ -139,7 +139,7 @@ export default function AdminPage() {
       setSuccess(null);
 
       const newPassword = window.prompt(
-        `Neues Passwort für ${email} / New password for ${email}`,
+        t("New password for {email}", { email }),
       );
 
       if (!newPassword) return;
@@ -155,14 +155,10 @@ export default function AdminPage() {
         throw new Error(data.error || "Failed to reset password");
       }
 
-      setSuccess(
-        `Passwort zurückgesetzt / Password reset: ${email}`,
-      );
+      setSuccess({ key: "Password reset for {email}", values: { email } });
     } catch (err) {
       console.error(err);
-      setError(
-        err.message || "Fehler beim Zurücksetzen / Error resetting password",
-      );
+      setError(messageKeyFromError(err.message, "Error resetting password"));
     }
   };
 
@@ -180,9 +176,7 @@ export default function AdminPage() {
       const usersList = parseUsersFromText(bulkImportText);
 
       if (usersList.length === 0) {
-        throw new Error(
-          "Keine gültigen Benutzer gefunden / No valid users found",
-        );
+        throw new Error("No valid users found");
       }
 
       const res = await fetch("/api/users/bulk-create", {
@@ -198,17 +192,20 @@ export default function AdminPage() {
       }
 
       setBulkResults(data);
-      setSuccess(
-        `Massenimport abgeschlossen / Bulk import complete: ${data.summary.created} erstellt / created, ${data.summary.skipped} übersprungen / skipped, ${data.summary.errors} Fehler / errors`,
-      );
+      setSuccess({
+        key: "Bulk import complete: {created} created, {skipped} skipped, {errors} errors",
+        values: {
+          created: data.summary.created,
+          skipped: data.summary.skipped,
+          errors: data.summary.errors,
+        },
+      });
       setBulkImportText("");
       setImportFileName("");
       fetchData();
     } catch (err) {
       console.error(err);
-      setError(
-        err.message || "Fehler beim Massenimport / Error during bulk import",
-      );
+      setError(messageKeyFromError(err.message, "Bulk import failed"));
     }
   };
 
@@ -222,30 +219,30 @@ export default function AdminPage() {
       setError(null);
     } catch (err) {
       console.error(err);
-      setError("Datei konnte nicht gelesen werden / Could not read file");
+      setError("Could not read file");
     }
   };
 
   if (userLoading || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
-        <p className="text-lg text-gray-600">Lädt... / Loading...</p>
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+        <p className="text-lg text-gray-600">{t("Loading...")}</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center">
           <p className="mb-4 text-lg text-gray-600">
-            Bitte melden Sie sich an / Please sign in
+            {t("Please sign in")}
           </p>
           <a
             href="/account/signin"
             className="text-gray-900 hover:text-gray-700 font-medium"
           >
-            Zur Anmeldung / Go to Sign In
+            {t("Go to sign in")}
           </a>
         </div>
       </div>
@@ -258,33 +255,33 @@ export default function AdminPage() {
 
   if (!hasAdminAccess) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 p-4 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-lg border border-gray-200">
           <div className="mb-8 flex justify-center">
-            <a href="/" aria-label="Zur Startseite / Back to Home">
+              <a href="/" aria-label={t("Home")}>
               <img
                 src="/sis-student-parliament-logo.png"
-                alt="SIS Basel Logo"
+                alt={t("SIS Basel logo")}
                 className="h-24 w-auto"
               />
             </a>
           </div>
           <h1 className="mb-2 text-2xl font-bold text-gray-900">
-            Zugriff verweigert
+            {t("Access denied")}
           </h1>
           <p className="mb-6 text-gray-600">
-            Access denied - this area is only for admins and spectators.
+            {t("Only admins and spectators can access this page")}
           </p>
           {error && (
             <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-600">
-              {error}
+              {t(error)}
             </div>
           )}
           <a
             href="/"
             className="inline-block rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
           >
-            Zur Startseite / Back to Home
+            {t("Back to home")}
           </a>
         </div>
       </div>
@@ -297,25 +294,23 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+    <div className="app-page min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <a href="/" aria-label="Zur Startseite / Back to Home">
+            <a href="/" aria-label={t("Home")}>
               <img
                 src="/sis-student-parliament-logo.png"
-                alt="SIS Basel Logo"
+                alt={t("SIS Basel logo")}
                 className="h-16 w-auto"
               />
             </a>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Verwaltung / Administration
+                {t("Administration")}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {isSpectator
-                  ? "Zuschauer / Spectator"
-                  : "Administrator / Admin"}{" "}
+                {isSpectator ? t("Spectator") : t("Administrator")}{" "}
                 - {user.email}
               </p>
             </div>
@@ -324,27 +319,25 @@ export default function AdminPage() {
             href="/account/logout"
             className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
           >
-            Abmelden / Logout
+            {t("Log out")}
           </a>
         </div>
 
         {error && (
           <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-600">
-            {error}
+            {t(error)}
           </div>
         )}
 
         {success && (
           <div className="mb-6 rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-600">
-            {success}
+            {typeof success === "string" ? t(success) : t(success.key, success.values)}
           </div>
         )}
 
         {isSpectator && (
           <div className="mb-6 rounded-md bg-blue-50 border border-blue-200 p-4 text-sm text-blue-600">
-            Sie sind Zuschauer - Sie können alles sehen, aber nur
-            Administratoren können Änderungen vornehmen / You are a spectator -
-            you can view everything, but only admins can make changes
+            {t("You can view everything, but only admins can make changes.")}
           </div>
         )}
 
@@ -352,13 +345,13 @@ export default function AdminPage() {
         <div className="mb-8 rounded-lg bg-white p-6 shadow-md border border-gray-200">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900">
-              Benutzerverwaltung / User Management
+              {t("User management")}
             </h2>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Suche... / Search..."
+              placeholder={t("Search...")}
               className="rounded-md border border-gray-300 px-4 py-2 w-64 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
             />
           </div>
@@ -367,16 +360,16 @@ export default function AdminPage() {
               <thead>
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Name
+                    {t("Name")}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    E-Mail / Email
+                    {t("Email")}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Rolle / Role
+                    {t("Role")}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Aktionen / Actions
+                    {t("Actions")}
                   </th>
                 </tr>
               </thead>
@@ -393,17 +386,17 @@ export default function AdminPage() {
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
                           u.designation === "admin"
-                            ? "bg-purple-100 text-purple-800"
+                            ? "bg-blue-100 text-blue-900"
                             : u.designation === "spectator"
                               ? "bg-blue-100 text-blue-800"
                               : "bg-gray-100 text-gray-800"
                         }`}
                       >
                         {u.designation === "admin"
-                          ? "Admin"
+                          ? t("Admin")
                           : u.designation === "spectator"
-                            ? "Zuschauer / Spectator"
-                            : "Mitglied / Member"}
+                          ? t("Spectator")
+                          : t("Member")}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm">
@@ -416,15 +409,15 @@ export default function AdminPage() {
                             }
                             className="rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
                           >
-                            <option value="member">Mitglied / Member</option>
-                            <option value="admin">Admin</option>
+                            <option value="member">{t("Member")}</option>
+                            <option value="admin">{t("Admin")}</option>
                             <option value="spectator">
-                              Zuschauer / Spectator
+                              {t("Spectator")}
                             </option>
                           </select>
                         ) : (
                           <span className="text-xs text-gray-500">
-                            Nur ansehen / Read only
+                            {t("Read only")}
                           </span>
                         )}
                         {isAdmin && u.designation === "member" && (
@@ -432,7 +425,7 @@ export default function AdminPage() {
                             onClick={() => handleResetPassword(u.user_id, u.email)}
                             className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-900 hover:bg-gray-50"
                           >
-                            Passwort zurücksetzen / Reset
+                            {t("Reset password")}
                           </button>
                         )}
                       </div>
@@ -443,7 +436,7 @@ export default function AdminPage() {
             </table>
             {filteredUsers.length === 0 && (
               <p className="text-center py-8 text-gray-500 text-sm">
-                Keine Benutzer gefunden / No users found
+                {t("No users found")}
               </p>
             )}
           </div>
@@ -453,15 +446,15 @@ export default function AdminPage() {
         {isAdmin && (
           <div className="mb-8 rounded-lg bg-white p-6 shadow-md border border-gray-200">
             <h2 className="mb-4 text-xl font-bold text-gray-900">
-              Import Accounts / Konten importieren
+              {t("Import accounts")}
             </h2>
             <p className="mb-4 text-sm text-gray-600">
-              Format A (empfohlen / recommended):{" "}
+              {t("Format A (recommended):")}{" "}
               <code className="bg-gray-100 px-2 py-1 rounded">
                 Max Muster, max@sisbasel.ch, Password123!
               </code>
               <br />
-              Format B (legacy):{" "}
+              {t("Format B (legacy):")}{" "}
               <code className="bg-gray-100 px-2 py-1 rounded">
                 email@sisbasel.ch password123
               </code>
@@ -469,7 +462,7 @@ export default function AdminPage() {
             <form onSubmit={handleBulkImport} className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
                 <label className="cursor-pointer rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50">
-                  .txt Datei auswählen / Choose .txt file
+                  {t("Choose .txt file")}
                   <input
                     type="file"
                     accept=".txt,.csv"
@@ -484,7 +477,7 @@ export default function AdminPage() {
               <textarea
                 value={bulkImportText}
                 onChange={(e) => setBulkImportText(e.target.value)}
-                placeholder="Max Muster, max@sisbasel.ch, Password123!&#10;Lia Beispiel, lia@sisbasel.ch, Password123!"
+                placeholder={t("Bulk import examples")}
                 rows={8}
                 className="w-full rounded-md border border-gray-300 px-4 py-2 font-mono text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
               />
@@ -492,7 +485,7 @@ export default function AdminPage() {
                 type="submit"
                 className="rounded-md bg-gray-900 px-6 py-2 text-sm font-medium text-white hover:bg-gray-800"
               >
-                Import Accounts / Konten importieren
+                {t("Import accounts")}
               </button>
             </form>
 
@@ -500,27 +493,25 @@ export default function AdminPage() {
               <div className="mt-6 space-y-4">
                 <div className="rounded-md bg-blue-50 border border-blue-200 p-4">
                   <h3 className="font-semibold text-blue-900 mb-2">
-                    Zusammenfassung / Summary
+                    {t("Summary")}
                   </h3>
                   <ul className="text-sm text-blue-800 space-y-1">
-                    <li>Gesamt / Total: {bulkResults.summary.total}</li>
-                    <li>Erstellt / Created: {bulkResults.summary.created}</li>
-                    <li>
-                      Übersprungen / Skipped: {bulkResults.summary.skipped}
-                    </li>
-                    <li>Fehler / Errors: {bulkResults.summary.errors}</li>
+                    <li>{t("Total: {count}", { count: bulkResults.summary.total })}</li>
+                    <li>{t("Created: {count}", { count: bulkResults.summary.created })}</li>
+                    <li>{t("Skipped: {count}", { count: bulkResults.summary.skipped })}</li>
+                    <li>{t("Errors: {count}", { count: bulkResults.summary.errors })}</li>
                   </ul>
                 </div>
 
                 {bulkResults.results.errors.length > 0 && (
                   <div className="rounded-md bg-red-50 border border-red-200 p-4">
                     <h3 className="font-semibold text-red-900 mb-2">
-                      Fehler / Errors
+                      {t("Errors")}
                     </h3>
                     <ul className="text-sm text-red-800 space-y-1">
                       {bulkResults.results.errors.map((err, idx) => (
                         <li key={idx}>
-                          {err.email}: {err.reason}
+                          {err.email}: {t(messageKeyFromError(err.reason, "Something went wrong"))}
                         </li>
                       ))}
                     </ul>
@@ -530,12 +521,12 @@ export default function AdminPage() {
                 {bulkResults.results.skipped.length > 0 && (
                   <div className="rounded-md bg-yellow-50 border border-yellow-200 p-4">
                     <h3 className="font-semibold text-yellow-900 mb-2">
-                      Übersprungen / Skipped
+                      {t("Skipped")}
                     </h3>
                     <ul className="text-sm text-yellow-800 space-y-1">
                       {bulkResults.results.skipped.map((skip, idx) => (
                         <li key={idx}>
-                          {skip.email}: {skip.reason}
+                          {skip.email}: {t(messageKeyFromError(skip.reason, "Something went wrong"))}
                         </li>
                       ))}
                     </ul>

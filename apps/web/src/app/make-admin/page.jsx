@@ -1,8 +1,10 @@
 import { useState } from "react";
 import useUser from "@/utils/useUser";
+import { messageKeyFromError, useLanguage } from "@/i18n";
 
 export default function MakeAdminPage() {
   const { data: user, loading: userLoading } = useUser();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
@@ -25,7 +27,7 @@ export default function MakeAdminPage() {
       setSuccess(true);
     } catch (err) {
       console.error(err);
-      setError(err.message || "Fehler / Error");
+      setError(messageKeyFromError(err.message, "Something went wrong"));
     } finally {
       setLoading(false);
     }
@@ -33,24 +35,24 @@ export default function MakeAdminPage() {
 
   if (userLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
-        <p className="text-lg text-gray-600">Lädt... / Loading...</p>
+      <div className="app-page flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+        <p className="text-lg text-gray-600">{t("Loading...")}</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <div className="app-page flex min-h-screen items-center justify-center bg-white font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center max-w-md">
           <p className="mb-4 text-lg text-gray-600">
-            Bitte melden Sie sich zuerst an / Please sign in first
+            {t("Please sign in")}
           </p>
           <a
             href="/account/signin"
             className="text-gray-900 hover:text-gray-700 font-medium"
           >
-            Zur Anmeldung / Go to Sign In
+            {t("Go to sign in")}
           </a>
         </div>
       </div>
@@ -58,41 +60,33 @@ export default function MakeAdminPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white p-4 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+    <div className="app-page flex min-h-screen items-center justify-center bg-white p-4 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg border border-gray-200">
         <div className="mb-8 flex justify-center">
-          <a href="/" aria-label="Zur Startseite / Back to Home">
+          <a href="/" aria-label={t("Home")}>
             <img
               src="/sis-student-parliament-logo.png"
-              alt="SIS Basel Logo"
+              alt={t("SIS Basel logo")}
               className="h-24 w-auto"
             />
           </a>
         </div>
 
         <h1 className="mb-2 text-center text-2xl font-bold text-gray-900">
-          Zum Administrator machen
+          {t("Make yourself an admin")}
         </h1>
-        <p className="mb-8 text-center text-lg text-gray-600">
-          Make Yourself Admin
-        </p>
 
         {!success && (
           <>
             <div className="mb-6 rounded-md bg-yellow-50 border border-yellow-200 p-4 text-sm text-yellow-800">
               <p className="font-semibold mb-2">
-                Wichtiger Hinweis / Important Notice:
+                {t("Important notice")}:
               </p>
               <p className="mb-2">
-                Diese Seite macht Sie zum Administrator. Löschen Sie diese Seite
-                und Route nach der Verwendung!
-              </p>
-              <p>
-                This page will make you an admin. Delete this page and route
-                after using it!
+                {t("This page will make you an admin. Delete this page and route after using it!")}
               </p>
               <p className="mt-2 text-xs">
-                Route zu löschen / Route to delete:{" "}
+                {t("Route to delete:")}{" "}
                 <code className="bg-yellow-100 px-1 rounded">
                   /apps/web/src/app/api/make-first-admin/route.js
                 </code>
@@ -100,13 +94,13 @@ export default function MakeAdminPage() {
             </div>
 
             <p className="mb-6 text-sm text-gray-600 text-center">
-              Angemeldet als / Signed in as:{" "}
+              {t("Signed in as")}:{" "}
               <span className="font-semibold">{user.email}</span>
             </p>
 
             {error && (
               <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-600">
-                {error}
+                {t(error)}
               </div>
             )}
 
@@ -116,8 +110,8 @@ export default function MakeAdminPage() {
               className="w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:opacity-50"
             >
               {loading
-                ? "Lädt... / Loading..."
-                : "Zum Administrator machen / Make Me Admin"}
+                ? t("Loading...")
+                : t("Make me admin")}
             </button>
           </>
         )}
@@ -125,19 +119,17 @@ export default function MakeAdminPage() {
         {success && (
           <div className="text-center">
             <div className="mb-6 rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-600">
-              <p className="font-semibold mb-2">Erfolg / Success!</p>
-              <p>Sie sind jetzt Administrator! / You are now an admin!</p>
+              <p className="font-semibold mb-2">{t("Success!")}</p>
+              <p>{t("You are now an admin!")}</p>
             </div>
             <a
               href="/admin"
               className="inline-block rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
             >
-              Zur Admin-Seite / Go to Admin Page
+              {t("Go to admin page")}
             </a>
             <p className="mt-4 text-xs text-gray-500">
-              Vergessen Sie nicht, die /api/make-first-admin Route zu löschen!
-              <br />
-              Don't forget to delete the /api/make-first-admin route!
+              {t("Don't forget to delete the first-admin route.")}
             </p>
           </div>
         )}

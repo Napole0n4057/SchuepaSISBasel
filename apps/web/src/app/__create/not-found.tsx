@@ -2,6 +2,7 @@ import fg from 'fast-glob';
 import type { Route } from './+types/not-found';
 import { useNavigate } from 'react-router';
 import { useCallback, useEffect, useState } from 'react';
+import { useLanguage } from '@/i18n';
 
 export async function loader({ params }: Route.LoaderArgs) {
   const matches = await fg('src/**/page.{js,jsx,ts,tsx}');
@@ -34,6 +35,7 @@ export default function CreateDefaultNotFoundPage({
 }) {
   const [siteMap, setSitemap] = useState<ParentSitemap | null>(null);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
@@ -88,7 +90,7 @@ export default function CreateDefaultNotFoundPage({
   }, [missingPath]);
 
   return (
-    <div className="flex sm:w-full w-screen sm:min-w-[850px] flex-col">
+    <div className="app-page flex sm:w-full w-screen sm:min-w-[850px] flex-col">
       <div className="flex w-full items-center gap-2 p-5">
         <button
           type="button"
@@ -101,7 +103,7 @@ export default function CreateDefaultNotFoundPage({
             viewBox="0 0 18 18"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            aria-label="Back"
+            aria-label={t("Back to home")}
             role="img"
           >
             <path
@@ -138,29 +140,28 @@ export default function CreateDefaultNotFoundPage({
 
       <div className="flex flex-grow flex-col items-center justify-center pt-[100px] text-center gap-[20px]">
         <h1 className="text-4xl font-medium text-gray-900 px-2">
-          Uh-oh! This page doesn't exist (yet).
+          {t("Uh-oh! This page doesn't exist yet.")}
         </h1>
 
         <p className="pt-4 pb-12 px-2 text-gray-500">
-          Looks like "<span className="font-bold">/{missingPath}</span>" isn't part of your project.
-          But no worries, you've got options!
+          {t('Looks like "{path}" is not part of your project. You still have options!', { path: `/${missingPath}` })}
         </p>
 
         <div className="px-[20px] w-full">
           <div className="flex flex-row justify-center items-center w-full max-w-[800px] mx-auto border border-gray-200 rounded-lg p-[20px] mb-[40px] gap-[20px]">
             <div className="flex flex-col gap-[5px] items-start self-start w-1/2">
-              <p className="text-sm text-black text-left">Build it from scratch</p>
+              <p className="text-sm text-black text-left">{t("Build it from scratch")}</p>
               <p className="text-sm text-gray-500 text-left">
-                Create a new page to live at "<span>/{missingPath}</span>"
+                {t("Create a new page at this route")} "<span>/{missingPath}</span>"
               </p>
             </div>
             <div className="flex flex-row items-center justify-end w-1/2">
               <button
                 type="button"
-                className="bg-black text-white px-[10px] py-[5px] rounded-md"
+                className="bg-gray-900 text-white px-[10px] py-[5px] rounded-md"
                 onClick={() => handleCreatePage()}
               >
-                Create Page
+                {t("Create page")}
               </button>
             </div>
           </div>
@@ -168,14 +169,14 @@ export default function CreateDefaultNotFoundPage({
 
         <div className="pb-20 lg:pb-[80px]">
           <p className="flex items-center text-gray-500">
-            Check out all your project's routes here ↓
+            {t("Check out all project routes here")} ↓
           </p>
         </div>
 
         {siteMap ? (
           <div className="flex flex-col justify-center items-center w-full px-[50px]">
             <div className="flex flex-col justify-between items-center w-full max-w-[600px] gap-[10px]">
-              <p className="text-sm text-gray-300 pb-[10px] self-start p-4">PAGES</p>
+              <p className="text-sm text-gray-300 pb-[10px] self-start p-4">{t("Pages")}</p>
               {siteMap.webPages?.map((route) => (
                 <button
                   type="button"
@@ -204,7 +205,9 @@ export default function CreateDefaultNotFoundPage({
                       className="h-full w-full rounded-[8px] bg-gray-50 bg-cover"
                     />
                   </div>
-                  <p className="pt-3 text-left text-gray-500 w-full max-w-[350px]">{route.path}</p>
+                  <p className="pt-3 text-left text-gray-500 w-full max-w-[350px]">
+                    {route.path === 'Homepage' ? t('Home') : route.path}
+                  </p>
                 </div>
               </div>
             ))}

@@ -44,7 +44,7 @@ describe("ProfileAvatar", () => {
     const container = render(<ProfileAvatar src={null} name="Anonymous" />);
 
     expect(
-      container.querySelector('[role="img"][aria-label="Anonymous profile picture"]'),
+      container.querySelector('[role="img"][aria-label="Profilbild von Anonym"]'),
     ).toBeTruthy();
     expect(container.querySelector("[data-testid=profile-avatar-fallback]")).toBeTruthy();
     expect(container.querySelector("img")).toBeNull();

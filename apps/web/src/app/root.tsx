@@ -34,6 +34,7 @@ import { HotReloadIndicator } from '../__create/HotReload';
 import { useSandboxStore } from '../__create/hmr-sandbox-store';
 import type { Route } from './+types/root';
 import { useDevServerHeartbeat } from '../__create/useDevServerHeartbeat';
+import { LanguageProvider, useLanguage } from '../i18n';
 
 export const links = () => [];
 
@@ -67,6 +68,7 @@ function SharedErrorBoundary({
   isOpen: boolean;
   children?: ReactNode;
 }): React.ReactElement {
+  const { t } = useLanguage();
   return (
     <div
       className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-out ${
@@ -82,10 +84,10 @@ function SharedErrorBoundary({
           </div>
 
           <div className="flex flex-col gap-2 flex-1">
-            <div className="flex flex-col gap-1">
-              <p className="font-light text-[#F2F2F2] text-sm">App Error Detected</p>
+          <div className="flex flex-col gap-1">
+              <p className="font-light text-[#F2F2F2] text-sm">{t('App error detected')}</p>
               <p className="text-[#959697] text-sm font-light">
-                It looks like an error occurred while trying to use your app.
+                {t('An error occurred while using the app.')}
               </p>
             </div>
             {children}
@@ -106,6 +108,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 }
 
 function InternalErrorBoundary({ error: errorArg }: Route.ErrorBoundaryProps) {
+  const { t } = useLanguage();
   const routeError = useRouteError();
   const asyncError = useAsyncError();
   const error = errorArg ?? asyncError ?? routeError;
@@ -170,7 +173,7 @@ function InternalErrorBoundary({ error: errorArg }: Route.ErrorBoundaryProps) {
               type="button"
               {...fixButtonProps}
             >
-              Try to fix
+              {t('Try to fix')}
             </button>
           )}
 
@@ -179,7 +182,7 @@ function InternalErrorBoundary({ error: errorArg }: Route.ErrorBoundaryProps) {
             type="button"
             {...showLogsButtonProps}
           >
-            Show logs
+            {t('Show logs')}
           </button>
         </div>
       ) : (
@@ -188,7 +191,7 @@ function InternalErrorBoundary({ error: errorArg }: Route.ErrorBoundaryProps) {
           type="button"
           {...copyButtonProps}
         >
-          Copy error
+          {t('Copy error')}
         </button>
       )}
     </SharedErrorBoundary>
@@ -456,7 +459,7 @@ export function Layout({ children }: { children: ReactNode }) {
     }
   }, [pathname]);
   return (
-    <html lang="en">
+    <html lang="de">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -467,7 +470,9 @@ export function Layout({ children }: { children: ReactNode }) {
         {LoadFontsSSR ? <LoadFontsSSR /> : null}
       </head>
       <body>
-        <ClientOnly loader={() => children} />
+        <ClientOnly
+          loader={() => <LanguageProvider>{children}</LanguageProvider>}
+        />
         <HotReloadIndicator />
         <Toaster position="bottom-right" />
         <ScrollRestoration />

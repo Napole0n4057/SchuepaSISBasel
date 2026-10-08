@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
+import { messageKeyFromError, useLanguage } from "@/i18n";
 
 export default function CreateBlogPage() {
   const { data: user, loading: userLoading } = useUser();
+  const { t } = useLanguage();
   const [userRole, setUserRole] = useState(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -29,7 +31,7 @@ export default function CreateBlogPage() {
     e.preventDefault();
 
     if (!title.trim() || !content.trim()) {
-      setError("Titel und Inhalt erforderlich / Title and content required");
+      setError("Title and content are required");
       return;
     }
 
@@ -47,7 +49,7 @@ export default function CreateBlogPage() {
         throw new Error("Failed to create blog post");
       }
 
-      setSuccess("Blog-Beitrag erstellt! / Blog post created!");
+      setSuccess("Blog post created");
       setTitle("");
       setContent("");
 
@@ -56,28 +58,27 @@ export default function CreateBlogPage() {
       }, 1500);
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(messageKeyFromError(err.message, "Something went wrong"));
     }
   };
 
   if (userLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
-        <p className="text-lg text-gray-600">Lädt... / Loading...</p>
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+        <p className="text-lg text-gray-600">{t("Loading...")}</p>
       </div>
     );
   }
 
   if (!user || userRole?.designation !== "admin") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center">
           <p className="mb-4 text-lg text-gray-600">
-            Zugriff verweigert - Nur für Administratoren / Access denied - Admin
-            only
+            {t("Access denied - admin only")}
           </p>
           <a href="/" className="text-gray-900 hover:text-gray-700 font-medium">
-            ← Zurück zur Startseite / Back to Home
+            {t("Back to home")}
           </a>
         </div>
       </div>
@@ -85,26 +86,26 @@ export default function CreateBlogPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+    <div className="app-page min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Blog-Beitrag erstellen / Create Blog Post
+            {t("Create blog post")}
           </h1>
           <a href="/" className="text-sm text-gray-600 hover:text-gray-900">
-            ← Zurück zur Startseite / Back to Home
+            {t("Back to home")}
           </a>
         </div>
 
         {error && (
           <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-600">
-            {error}
+            {t(error)}
           </div>
         )}
 
         {success && (
           <div className="mb-6 rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-600">
-            {success}
+            {t(success)}
           </div>
         )}
 
@@ -112,7 +113,7 @@ export default function CreateBlogPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Titel / Title *
+                {t("Title *")}
               </label>
               <input
                 type="text"
@@ -125,7 +126,7 @@ export default function CreateBlogPage() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Inhalt / Content *
+                {t("Content *")}
               </label>
               <textarea
                 value={content}
@@ -140,7 +141,7 @@ export default function CreateBlogPage() {
               type="submit"
               className="w-full rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
             >
-              Veröffentlichen / Publish
+              {t("Publish")}
             </button>
           </form>
         </div>

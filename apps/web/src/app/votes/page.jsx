@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
+import { messageKeyFromError, useLanguage } from "@/i18n";
 
 export default function VotesPage() {
   const { data: user, loading: userLoading } = useUser();
+  const { t } = useLanguage();
   const [votes, setVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,7 +43,7 @@ export default function VotesPage() {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setError("Fehler beim Laden der Abstimmungen / Error loading votes");
+      setError("Error loading votes");
       setLoading(false);
     }
   };
@@ -62,11 +64,11 @@ export default function VotesPage() {
         throw new Error(data.error || "Failed to cast vote");
       }
 
-      setSuccess("Stimme abgegeben / Vote cast");
+      setSuccess("Vote cast");
       fetchVotes();
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(messageKeyFromError(err.message, "Failed to vote"));
     }
   };
 
@@ -77,7 +79,7 @@ export default function VotesPage() {
 
     if (!newTitle.trim() || filteredOptions.length < 2) {
       setError(
-        "Titel und mindestens 2 Optionen erforderlich / Title and at least 2 options required",
+        "Title and at least 2 options are required",
       );
       return;
     }
@@ -102,7 +104,7 @@ export default function VotesPage() {
         throw new Error(data.error || "Failed to create vote");
       }
 
-      setSuccess("Abstimmung erstellt / Vote created");
+      setSuccess("Vote created");
       setShowCreateForm(false);
       setNewTitle("");
       setNewDescription("");
@@ -111,30 +113,30 @@ export default function VotesPage() {
       fetchVotes();
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(messageKeyFromError(err.message, "Something went wrong"));
     }
   };
 
   if (userLoading || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
-        <p className="text-lg text-gray-600">Lädt... / Loading...</p>
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+        <p className="text-lg text-gray-600">{t("Loading...")}</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center">
           <p className="mb-4 text-lg text-gray-600">
-            Bitte melden Sie sich an / Please sign in
+            {t("Please sign in")}
           </p>
           <a
             href="/account/signin"
             className="text-gray-900 hover:text-gray-700 font-medium"
           >
-            Zur Anmeldung / Go to Sign In
+            {t("Go to sign in")}
           </a>
         </div>
       </div>
@@ -145,15 +147,15 @@ export default function VotesPage() {
   const isSpectator = userRole?.designation === "spectator";
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+    <div className="app-page min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Abstimmungen / Votes
+              {t("Votes")}
             </h1>
             <a href="/" className="text-sm text-gray-600 hover:text-gray-900">
-              ← Zurück zur Startseite / Back to Home
+              {t("Back to home")}
             </a>
           </div>
 
@@ -162,22 +164,20 @@ export default function VotesPage() {
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
             >
-              {showCreateForm
-                ? "Abbrechen / Cancel"
-                : "Abstimmung erstellen / Create Vote"}
+              {showCreateForm ? t("Cancel") : t("Create vote")}
             </button>
           )}
         </div>
 
         {error && (
           <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-600">
-            {error}
+            {t(error)}
           </div>
         )}
 
         {success && (
           <div className="mb-6 rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-600">
-            {success}
+            {t(success)}
           </div>
         )}
 
@@ -185,12 +185,12 @@ export default function VotesPage() {
         {isAdmin && showCreateForm && (
           <div className="mb-8 rounded-lg bg-white p-6 shadow-md border border-gray-200">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Neue Abstimmung / New Vote
+              {t("New vote")}
             </h2>
             <form onSubmit={handleCreateVote} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Titel / Title *
+                  {t("Title *")}
                 </label>
                 <input
                   type="text"
@@ -203,7 +203,7 @@ export default function VotesPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Beschreibung / Description
+                  {t("Description")}
                 </label>
                 <textarea
                   value={newDescription}
@@ -215,7 +215,7 @@ export default function VotesPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Optionen / Options *
+                  {t("Options *")}
                 </label>
                 {newOptions.map((option, idx) => (
                   <div key={idx} className="flex gap-2 mb-2">
@@ -227,7 +227,7 @@ export default function VotesPage() {
                         updated[idx] = e.target.value;
                         setNewOptions(updated);
                       }}
-                      placeholder={`Option ${idx + 1}`}
+                      placeholder={t("Option {number}", { number: idx + 1 })}
                       className="flex-1 rounded-md border border-gray-300 px-4 py-2 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
                     />
                     {newOptions.length > 2 && (
@@ -248,7 +248,7 @@ export default function VotesPage() {
                   onClick={() => setNewOptions([...newOptions, ""])}
                   className="text-sm text-gray-600 hover:text-gray-900"
                 >
-                  + Option hinzufügen / Add option
+                  + {t("Add option")}
                 </button>
               </div>
 
@@ -261,7 +261,7 @@ export default function VotesPage() {
                     className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
                   />
                   <span className="text-sm font-semibold text-gray-900">
-                    Nur für Admins sichtbar / Admin only
+                    {t("Admin only")}
                   </span>
                 </label>
               </div>
@@ -270,7 +270,7 @@ export default function VotesPage() {
                 type="submit"
                 className="w-full rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
               >
-                Abstimmung erstellen / Create Vote
+                {t("Create vote")}
               </button>
             </form>
           </div>
@@ -297,8 +297,8 @@ export default function VotesPage() {
                       {vote.title}
                     </h3>
                     {vote.admin_only && (
-                      <span className="rounded-full bg-purple-100 text-purple-800 px-3 py-1 text-xs font-semibold">
-                        Admin Only
+                      <span className="rounded-full bg-blue-100 text-blue-900 px-3 py-1 text-xs font-semibold">
+                        {t("Admin only")}
                       </span>
                     )}
                   </div>
@@ -308,11 +308,10 @@ export default function VotesPage() {
                     </p>
                   )}
                   <p className="text-xs text-gray-500">
-                    {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"} /{" "}
-                    {totalVotes === 1 ? "Vote" : "Votes"}
+                    {t("Total votes: {count}", { count: totalVotes })}
                     {isEnded && (
                       <span className="ml-2 text-red-600">
-                        • Beendet / Ended
+                        • {t("Ended")}
                       </span>
                     )}
                   </p>
@@ -360,7 +359,7 @@ export default function VotesPage() {
                           </div>
                           <div className="mt-1 text-xs text-gray-500">
                             {option.vote_count}{" "}
-                            {option.vote_count === "1" ? "Stimme" : "Stimmen"}
+                    {option.vote_count === "1" ? t("Vote") : t("Vote plural")}
                           </div>
                         </button>
                       </div>
@@ -370,8 +369,7 @@ export default function VotesPage() {
 
                 {isSpectator && (
                   <p className="mt-4 text-xs text-gray-500 italic">
-                    Als Zuschauer können Sie nicht abstimmen / As spectator you
-                    cannot vote
+                    {t("You cannot vote as a spectator")}
                   </p>
                 )}
               </div>
@@ -381,7 +379,7 @@ export default function VotesPage() {
           {votes.length === 0 && (
             <div className="rounded-lg bg-white p-12 shadow-md border border-gray-200 text-center">
               <p className="text-gray-500">
-                Keine Abstimmungen verfügbar / No votes available
+                {t("No votes available")}
               </p>
             </div>
           )}
