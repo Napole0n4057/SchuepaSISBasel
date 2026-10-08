@@ -4,12 +4,12 @@
 
 :root {
   color-scheme: light;
-  --blue-950: #102f4d;
-  --blue-900: #16466f;
-  --blue-800: #1d5e91;
-  --blue-700: #2877ad;
-  --blue-600: #3188c2;
-  --blue-100: #e5f1fa;
+  --blue-950: #06245f;
+  --blue-900: #093388;
+  --blue-800: #093388;
+  --blue-700: #093388;
+  --blue-600: #009ee0;
+  --blue-100: #e4f5fc;
   --blue-50: #f3f8fc;
   --ink: #183047;
   --body-text: #314b63;
@@ -57,9 +57,55 @@
     background-size: 100% 100%, clamp(11rem, 32vw, 27rem) auto;
   }
 
+  .language-switch {
+    position: fixed;
+    z-index: 40;
+    left: 1rem;
+    bottom: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.25rem;
+    border: 1px solid var(--line);
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 3px 12px rgba(9, 51, 136, 0.12);
+    backdrop-filter: blur(8px);
+  }
+
+  .language-switch button {
+    min-width: 2rem;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    color: var(--blue-900);
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+
+  .language-switch button:hover:not([aria-pressed="true"]) {
+    background: var(--blue-100);
+  }
+
+  .language-switch button[aria-pressed="true"] {
+    border-color: var(--blue-900);
+    background: var(--blue-900);
+    color: white;
+  }
+
+  .language-switch span {
+    color: var(--muted-text);
+    font-size: 0.75rem;
+  }
 }
 
 @layer utilities {
+  .app-page button:not([class*="border-"]) {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue-900) 28%, transparent);
+  }
+
   .bg-gray-50 { background-color: var(--blue-50); }
   .bg-gray-100 { background-color: #eaf2f8; }
   .bg-gray-200 { background-color: #dce8f1; }

@@ -145,6 +145,8 @@ const messages = {
   "Default anonymity": { de: "Standardmäßig anonym posten", en: "Post anonymously by default" },
   "You can change this for each post": { de: "Sie können dies für jeden Beitrag ändern", en: "You can change this for each post" },
   "Language": { de: "Sprache", en: "Language" },
+  "Switch to German": { de: "Zu Deutsch wechseln", en: "Switch to German" },
+  "Switch to English": { de: "Zu Englisch wechseln", en: "Switch to English" },
 
   "Cannot start sign-in": { de: "Anmeldung nicht möglich", en: "Cannot start sign-in" },
   "Sign-in failed": { de: "Anmeldung fehlgeschlagen", en: "Sign-in failed" },
@@ -283,11 +285,42 @@ export function LanguageProvider({ children }) {
   }, [language]);
 
   const value = useMemo(() => ({ language, setLanguage, t }), [language, t]);
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+  return (
+    <LanguageContext.Provider value={value}>
+      {children}
+      <LanguageSwitch />
+    </LanguageContext.Provider>
+  );
 }
 
 export function useLanguage() {
   return useContext(LanguageContext);
+}
+
+function LanguageSwitch() {
+  const { language, setLanguage, t } = useLanguage();
+
+  return (
+    <div className="language-switch" role="group" aria-label={t("Language")}>
+      <button
+        type="button"
+        aria-label={t("Switch to German")}
+        aria-pressed={language === "de"}
+        onClick={() => setLanguage("de")}
+      >
+        DE
+      </button>
+      <span aria-hidden="true">|</span>
+      <button
+        type="button"
+        aria-label={t("Switch to English")}
+        aria-pressed={language === "en"}
+        onClick={() => setLanguage("en")}
+      >
+        EN
+      </button>
+    </div>
+  );
 }
 
 export function messageKeyFromError(message, fallback) {
