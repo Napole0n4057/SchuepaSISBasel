@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
+import ForumComments from "@/components/ForumComments";
 import { messageKeyFromError, useLanguage } from "@/i18n";
 
 export default function ForumPostPage() {
@@ -10,20 +11,16 @@ export default function ForumPostPage() {
   const { id } = useParams();
 
   const [post, setPost] = useState(null);
-  const [comments, setComments] = useState([]);
   const [userRole, setUserRole] = useState(null);
+  const [profilePicture, setProfilePicture] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-
-  const [newComment, setNewComment] = useState("");
-  const [commentAnonymous, setCommentAnonymous] = useState(false);
 
   useEffect(() => {
     if (!userLoading && user && id) {
       fetchUserRole();
       fetchPost();
-      fetchComments();
+      fetchProfilePicture();
     }
   }, [user, userLoading, id]);
 
@@ -32,6 +29,16 @@ export default function ForumPostPage() {
       const res = await fetch("/api/user-roles/get");
       const data = await res.json();
       setUserRole(data.role);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchProfilePicture = async () => {
+    try {
+      const res = await fetch("/api/settings/get");
+      const data = await res.json();
+      setProfilePicture(data.settings?.profile_picture || null);
     } catch (err) {
       console.error(err);
     }
@@ -51,78 +58,6 @@ export default function ForumPostPage() {
     }
   };
 
-  const fetchComments = async () => {
-    try {
-      const res = await fetch(`/api/forum/comments/list?post_id=${id}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load comments");
-      setComments(data.comments || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleCreateComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    try {
-      setError(null);
-      setSuccess(null);
-
-      const res = await fetch("/api/forum/comments/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          post_id: id,
-          content: newComment,
-          is_anonymous: commentAnonymous,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create comment");
-      }
-
-      setNewComment("");
-      setSuccess("Comment created");
-      fetchComments();
-    } catch (err) {
-      console.error(err);
-      setError(messageKeyFromError(err.message, "Failed to create comment"));
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    const confirmed = window.confirm(
-      t("Delete this comment?"),
-    );
-    if (!confirmed) return;
-
-    try {
-      setError(null);
-      setSuccess(null);
-
-      const res = await fetch("/api/forum/comments/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comment_id: commentId }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to delete comment");
-      }
-
-      setSuccess("Comment removed");
-      fetchComments();
-    } catch (err) {
-      console.error(err);
-      setError(messageKeyFromError(err.message, "Failed to delete comment"));
-    }
-  };
-
   const handleDeletePost = async () => {
     const confirmed = window.confirm(
       t("Delete this post?"),
@@ -131,7 +66,6 @@ export default function ForumPostPage() {
 
     try {
       setError(null);
-      setSuccess(null);
 
       const res = await fetch("/api/forum/posts/delete", {
         method: "POST",
@@ -205,12 +139,6 @@ export default function ForumPostPage() {
           </div>
         )}
 
-        {success && (
-          <div className="mb-6 rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-600">
-            {t(success)}
-          </div>
-        )}
-
         {post && (
           <div className="mb-8 rounded-lg bg-white p-6 shadow-md border border-gray-200">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -227,79 +155,22 @@ export default function ForumPostPage() {
               <span>{new Date(post.created_at).toLocaleDateString(language === "de" ? "de-CH" : "en-GB")}</span>
             </div>
             <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
+            <ForumComments
+              postId={id}
+              initialCount={post.comment_count}
+              user={user}
+              profilePicture={profilePicture}
+              isAdmin={userRole?.designation === "admin"}
+              language={language}
+              onCountChange={(count) =>
+                setPost((currentPost) =>
+                  currentPost ? { ...currentPost, comment_count: count } : currentPost,
+                )
+              }
+              t={t}
+            />
           </div>
         )}
-
-        <div className="mb-6 rounded-lg bg-white p-6 shadow-md border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            {t("Write a comment")}
-          </h3>
-          <form onSubmit={handleCreateComment} className="space-y-4">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              rows={4}
-              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
-              required
-            />
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={commentAnonymous}
-                onChange={(e) => setCommentAnonymous(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
-              />
-              <span className="text-sm font-semibold text-gray-900">
-                {t("Comment anonymously")}
-              </span>
-            </label>
-            <button
-              type="submit"
-              className="w-full rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
-            >
-              {t("Post comment")}
-            </button>
-          </form>
-        </div>
-
-        <div className="space-y-4">
-          {comments.map((comment) => (
-            <div
-              key={comment.id}
-              className="rounded-lg bg-white p-6 shadow-md border border-gray-200"
-            >
-              <div className="flex items-center gap-3 mb-3 text-sm text-gray-600">
-                <ProfileAvatar
-                  src={comment.profile_picture}
-                  name={comment.author_name === "Anonymous" ? t("Anonymous") : comment.author_name}
-                  className="h-8 w-8"
-                />
-                <span>{comment.author_name === "Anonymous" ? t("Anonymous") : comment.author_name}</span>
-                <span>•</span>
-                <span>{new Date(comment.created_at).toLocaleDateString(language === "de" ? "de-CH" : "en-GB")}</span>
-              </div>
-              <p className="text-gray-700 whitespace-pre-wrap">
-                {comment.content}
-              </p>
-              {userRole?.designation === "admin" && (
-                <div className="mt-4">
-                  <button
-                    onClick={() => handleDeleteComment(comment.id)}
-                    className="rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-                  >
-                    {t("Remove comment")}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {comments.length === 0 && (
-            <div className="rounded-lg bg-white p-12 shadow-md border border-gray-200 text-center">
-              <p className="text-gray-500">{t("No comments yet")}</p>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

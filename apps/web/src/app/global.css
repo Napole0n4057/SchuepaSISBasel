@@ -46,6 +46,21 @@
 }
 
 @layer components {
+  @keyframes forum-comment-enter {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .forum-comment-enter {
+    animation: forum-comment-enter 160ms ease-out both;
+  }
+
   .app-page {
     min-height: 100vh;
     background-color: var(--canvas);
@@ -98,6 +113,12 @@
   .language-switch span {
     color: var(--muted-text);
     font-size: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forum-comment-enter {
+    animation: none;
   }
 }
 

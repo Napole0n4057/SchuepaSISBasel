@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS forum_comments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id uuid,
   user_id uuid,
+  parent_comment_id uuid REFERENCES forum_comments(id) ON DELETE CASCADE,
   content text,
   is_anonymous boolean DEFAULT false,
   created_at timestamp DEFAULT NOW()
@@ -139,6 +140,7 @@ CREATE TABLE IF NOT EXISTS user_votes (
 CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
 CREATE INDEX IF NOT EXISTS idx_forum_posts_user_id ON forum_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_forum_comments_post_id ON forum_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_forum_comments_parent_comment_id ON forum_comments(parent_comment_id);
 CREATE INDEX IF NOT EXISTS idx_forum_votes_post_id ON forum_votes(post_id);
 CREATE INDEX IF NOT EXISTS idx_forum_votes_comment_id ON forum_votes(comment_id);
 CREATE INDEX IF NOT EXISTS idx_vote_options_vote_id ON vote_options(vote_id);

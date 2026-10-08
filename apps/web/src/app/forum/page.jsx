@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
+import ForumComments from "@/components/ForumComments";
 import { messageKeyFromError, useLanguage } from "@/i18n";
 
 export default function ForumPage() {
@@ -96,24 +97,6 @@ export default function ForumPage() {
     } catch (err) {
       console.error(err);
       setError(messageKeyFromError(err.message, "Failed to create post"));
-    }
-  };
-
-  const handleVote = async (postId, voteType) => {
-    try {
-      const res = await fetch("/api/forum/posts/vote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ post_id: postId, vote_type: voteType }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to vote");
-      }
-
-      fetchPosts();
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -272,8 +255,10 @@ export default function ForumPage() {
               className="rounded-lg bg-white p-6 shadow-md border border-gray-200"
             >
               <div className="mb-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {post.title}
+                <h3 className="mb-2 text-xl font-bold text-gray-900">
+                  <a href={`/forum/${post.id}`} className="hover:text-[#009EE0]">
+                    {post.title}
+                  </a>
                 </h3>
                 <div className="flex items-center gap-3 mb-3">
                   <ProfileAvatar
@@ -292,39 +277,35 @@ export default function ForumPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 border-t border-gray-200 pt-4">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleVote(post.id, 1)}
-                    className="text-gray-600 hover:text-green-600"
-                  >
-                    ▲
-                  </button>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {parseInt(post.upvotes) - parseInt(post.downvotes)}
-                  </span>
-                  <button
-                    onClick={() => handleVote(post.id, -1)}
-                    className="text-gray-600 hover:text-red-600"
-                  >
-                    ▼
-                  </button>
-                </div>
-                <a
-                  href={`/forum/${post.id}`}
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  {t("Comments: {count}", { count: post.comment_count })}
-                </a>
-                {userRole?.designation === "admin" && (
+              {userRole?.designation === "admin" && (
+                <div className="flex justify-end border-t border-gray-200 pt-3">
                   <button
                     onClick={() => handleDeletePost(post.id)}
-                    className="ml-auto rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+                    className="rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
                   >
                     {t("Remove post")}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
+              <ForumComments
+                postId={post.id}
+                initialCount={post.comment_count}
+                user={user}
+                profilePicture={userSettings?.profile_picture}
+                isAdmin={userRole?.designation === "admin"}
+                language={language}
+                showDivider={userRole?.designation !== "admin"}
+                onCountChange={(count) =>
+                  setPosts((currentPosts) =>
+                    currentPosts.map((currentPost) =>
+                      currentPost.id === post.id
+                        ? { ...currentPost, comment_count: count }
+                        : currentPost,
+                    ),
+                  )
+                }
+                t={t}
+              />
             </div>
           ))}
 

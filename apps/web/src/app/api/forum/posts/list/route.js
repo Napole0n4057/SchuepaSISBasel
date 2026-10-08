@@ -12,14 +12,11 @@ export async function GET(request) {
     const posts = await sql`
       SELECT fp.*, u.name as account_name, u.email as author_email,
              us.profile_picture,
-             COUNT(DISTINCT fc.id) as comment_count,
-             COALESCE(SUM(CASE WHEN fv.vote_type = 1 THEN 1 ELSE 0 END), 0) as upvotes,
-             COALESCE(SUM(CASE WHEN fv.vote_type = -1 THEN 1 ELSE 0 END), 0) as downvotes
+             COUNT(DISTINCT fc.id) as comment_count
       FROM forum_posts fp
       LEFT JOIN auth_users u ON fp.user_id = u.id
       LEFT JOIN user_settings us ON fp.user_id = us.user_id
       LEFT JOIN forum_comments fc ON fp.id = fc.post_id
-      LEFT JOIN forum_votes fv ON fp.id = fv.post_id
       GROUP BY fp.id, u.name, u.email, us.profile_picture
       ORDER BY fp.created_at DESC
     `;
