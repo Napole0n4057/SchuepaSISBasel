@@ -107,13 +107,23 @@ CREATE TABLE IF NOT EXISTS votes (
   admin_only boolean DEFAULT false,
   ends_at timestamp,
   is_active boolean DEFAULT true,
-  created_at timestamp DEFAULT NOW()
+  created_at timestamp DEFAULT NOW(),
+  deleted_at timestamp
 );
 
 CREATE TABLE IF NOT EXISTS vote_options (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vote_id uuid,
   option_text text
+);
+
+CREATE TABLE IF NOT EXISTS vote_classes (
+  vote_id uuid NOT NULL REFERENCES votes(id),
+  class_name text NOT NULL CHECK (class_name IN (
+    'S1', 'S2', 'G1', 'G2', 'G3', 'G4',
+    'Pre-IB 1', 'Pre-IB 2', 'IBDP 1', 'IBDP 2', 'IB 1', 'IB 2'
+  )),
+  PRIMARY KEY (vote_id, class_name)
 );
 
 CREATE TABLE IF NOT EXISTS user_votes (

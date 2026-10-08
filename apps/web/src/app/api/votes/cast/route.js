@@ -1,6 +1,8 @@
 import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(request) {
   try {
     const session = await auth();
@@ -20,7 +22,17 @@ export async function POST(request) {
       );
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ error: "Request body must be valid JSON" }, { status: 400 });
+    }
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return Response.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
+
     const { vote_id, option_id } = body;
 
     if (!vote_id || !option_id) {
@@ -30,14 +42,28 @@ export async function POST(request) {
       );
     }
 
-    // Check if vote exists and is active
+    if (
+      typeof vote_id !== "string" ||
+      !UUID_PATTERN.test(vote_id) ||
+      typeof option_id !== "string" ||
+      !UUID_PATTERN.test(option_id)
+    ) {
+      return Response.json({ error: "vote_id and option_id must be valid UUIDs" }, { status: 400 });
+    }
+
+    // Use the same UTC wall-time comparison as the list endpoint for timestamp columns without a timezone.
     const vote = await sql`
-      SELECT * FROM votes WHERE id = ${vote_id} AND is_active = true
+      SELECT *
+      FROM votes
+      WHERE id = ${vote_id}
+        AND deleted_at IS NULL
+        AND is_active IS TRUE
+        AND (ends_at IS NULL OR ends_at > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
     `;
 
     if (vote.length === 0) {
       return Response.json(
-        { error: "Vote not found or inactive" },
+        { error: "Vote not found, inactive, or expired" },
         { status: 404 },
       );
     }
@@ -51,9 +77,15 @@ export async function POST(request) {
       }
     }
 
-    // Check if vote has ended
-    if (vote[0].ends_at && new Date(vote[0].ends_at) < new Date()) {
-      return Response.json({ error: "Vote has ended" }, { status: 400 });
+    const option = await sql`
+      SELECT id FROM vote_options WHERE id = ${option_id} AND vote_id = ${vote_id}
+    `;
+
+    if (option.length === 0) {
+      return Response.json(
+        { error: "option_id does not belong to vote_id" },
+        { status: 400 },
+      );
     }
 
     // Upsert user vote (allows changing vote)
