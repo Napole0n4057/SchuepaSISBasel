@@ -136,6 +136,20 @@ app.use(
       secret: authSecret,
       basePath: '/api/auth',
       trustHost: true,
+      // AUTH_URL is also used for the public origin and secure-cookie setup.
+      // Auth.js 0.37.4 warns whenever it is set alongside an explicit basePath,
+      // even though this Hono route must keep its /api/auth path. Filter only
+      // that redundant warning and keep forwarding all other Auth.js warnings.
+      logger: {
+        warn(code) {
+          if (code !== 'env-url-basepath-redundant') {
+            console.warn(
+              `[auth][warn][${code}]`,
+              `Read more: https://warnings.authjs.dev#${code}`
+            );
+          }
+        },
+      },
       pages: {
         signIn: '/account/signin',
         signOut: '/account/logout',
