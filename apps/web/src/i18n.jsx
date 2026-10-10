@@ -205,10 +205,6 @@ const messages = {
   "No votes available": { de: "Keine Abstimmungen verfügbar", en: "No votes available" },
 
   "Settings saved": { de: "Einstellungen gespeichert", en: "Settings saved" },
-  "The selected image is only a preview and has not been stored permanently.": {
-    de: "Das ausgewählte Bild ist nur eine Vorschau und wurde noch nicht dauerhaft gespeichert.",
-    en: "The selected image is only a preview and has not been stored permanently.",
-  },
   "Could not load settings": { de: "Einstellungen konnten nicht geladen werden", en: "Could not load settings" },
   "Could not save settings": { de: "Einstellungen konnten nicht gespeichert werden", en: "Could not save settings" },
   "Display name": { de: "Anzeigename", en: "Display name" },
@@ -220,17 +216,61 @@ const messages = {
   "Change profile picture": { de: "Profilbild ändern", en: "Change profile picture" },
   "Upload profile picture": { de: "Profilbild hochladen", en: "Upload profile picture" },
   "Remove picture": { de: "Profilbild entfernen", en: "Remove picture" },
-  "JPG, PNG or WebP, maximum 5 MB. Selected images are only previewed and are not stored permanently yet.": {
-    de: "JPG, PNG oder WebP, maximal 5 MB. Ausgewählte Bilder werden derzeit nur als Vorschau angezeigt und noch nicht dauerhaft gespeichert.",
-    en: "JPG, PNG or WebP, maximum 5 MB. Selected images are only previewed and are not stored permanently yet.",
+  "JPG, PNG or WebP, maximum 1 MB. Images are checked before upload.": {
+    de: "JPG, PNG oder WebP, maximal 1 MB. Bilder werden vor dem Hochladen geprüft.",
+    en: "JPG, PNG or WebP, maximum 1 MB. Images are checked before upload.",
   },
-  "Choose a JPG, PNG, or WebP image.": {
-    de: "Bitte wählen Sie eine JPG-, PNG- oder WebP-Bilddatei aus.",
-    en: "Choose a JPG, PNG, or WebP image.",
+  "The image must be 1 MB or smaller.": {
+    de: "Das Bild darf höchstens 1 MB gross sein.",
+    en: "The image must be 1 MB or smaller.",
   },
-  "The image must be 5 MB or smaller.": {
-    de: "Das Bild darf höchstens 5 MB groß sein.",
-    en: "The image must be 5 MB or smaller.",
+  "The selected image is empty.": {
+    de: "Die ausgewählte Bilddatei ist leer.",
+    en: "The selected image is empty.",
+  },
+  "Image upload request is too large": {
+    de: "Die Bildanfrage ist zu gross.",
+    en: "Image upload request is too large",
+  },
+  "Request must be multipart form data": {
+    de: "Die Anfrage enthält kein gültiges Bildformular.",
+    en: "Request must be multipart form data",
+  },
+  "Invalid content length": {
+    de: "Die Grösse der Anfrage ist ungültig.",
+    en: "Invalid content length",
+  },
+  "Request body is required": {
+    de: "Die Bilddatei fehlt.",
+    en: "Request body is required",
+  },
+  "Request body must contain a valid image upload": {
+    de: "Die Anfrage enthält keinen gültigen Bild-Upload.",
+    en: "Request body must contain a valid image upload",
+  },
+  "Upload exactly one image file": {
+    de: "Bitte laden Sie genau eine Bilddatei hoch.",
+    en: "Upload exactly one image file",
+  },
+  "Image file cannot be empty": {
+    de: "Die Bilddatei darf nicht leer sein.",
+    en: "Image file cannot be empty",
+  },
+  "Only valid JPEG, PNG, or WebP images are allowed": {
+    de: "Nur gültige JPEG-, PNG- oder WebP-Bilder sind erlaubt.",
+    en: "Only valid JPEG, PNG, or WebP images are allowed",
+  },
+  "Unable to upload profile picture": {
+    de: "Das Profilbild konnte nicht hochgeladen werden.",
+    en: "Unable to upload profile picture",
+  },
+  "Unable to remove profile picture": {
+    de: "Das Profilbild konnte nicht entfernt werden.",
+    en: "Unable to remove profile picture",
+  },
+  "Saving...": {
+    de: "Wird gespeichert...",
+    en: "Saving...",
   },
   "Default anonymity": { de: "Standardmäßig anonym posten", en: "Post anonymously by default" },
   "You can change this for each post": { de: "Sie können dies für jeden Beitrag ändern", en: "You can change this for each post" },

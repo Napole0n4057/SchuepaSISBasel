@@ -40,6 +40,19 @@ describe("ProfileAvatar", () => {
     );
   });
 
+  it("loads private R2 references through the authenticated image route", () => {
+    const container = render(
+      <ProfileAvatar
+        src="r2:profile-pictures/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"
+        name="Alex Example"
+      />,
+    );
+
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "/api/profile-picture?ref=r2%3Aprofile-pictures%2Faaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+    );
+  });
+
   it("uses the anonymous fallback without rendering an image", () => {
     const container = render(<ProfileAvatar src={null} name="Anonymous" />);
 

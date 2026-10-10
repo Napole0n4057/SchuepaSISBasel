@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
+import ProfileAvatar from "@/components/ProfileAvatar";
 import { useLanguage } from "@/i18n";
 
 export default function HomePage() {
@@ -182,6 +183,11 @@ export default function HomePage() {
                     {post.title}
                   </h3>
                   <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
+                    <ProfileAvatar
+                      src={post.profile_picture}
+                      name={post.author_name}
+                      className="h-7 w-7"
+                    />
                     <span>{post.author_name}</span>
                     <span>•</span>
                     <span>

@@ -5,7 +5,11 @@ export default function ProfileAvatar({ src, name, className = "" }) {
   const { t } = useLanguage();
   const [failedSource, setFailedSource] = React.useState(null);
 
-  const hasImage = Boolean(src) && failedSource !== src;
+  const imageSource =
+    typeof src === "string" && src.startsWith("r2:")
+      ? `/api/profile-picture?ref=${encodeURIComponent(src)}`
+      : src;
+  const hasImage = Boolean(imageSource) && failedSource !== imageSource;
   const accessibleName = name === "Anonymous" ? t("Anonymous") : name;
   const label = accessibleName
     ? t("Profile picture for {name}", { name: accessibleName })
@@ -19,10 +23,10 @@ export default function ProfileAvatar({ src, name, className = "" }) {
     >
       {hasImage ? (
         <img
-          src={src}
+          src={imageSource}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
-          onError={() => setFailedSource(src)}
+          onError={() => setFailedSource(imageSource)}
         />
       ) : (
         <svg

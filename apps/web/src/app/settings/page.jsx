@@ -4,19 +4,20 @@ import ProfileAvatar from "@/components/ProfileAvatar";
 import { extractNameFromEmail } from "@/app/api/utils/nameHelper.js";
 import { messageKeyFromError, useLanguage } from "@/i18n";
 
-const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-const maxImageSize = 5 * 1024 * 1024;
+const maxImageSize = 1024 * 1024;
 
 export default function SettingsPage() {
   const { data: user, loading: userLoading } = useUser();
   const { language, setLanguage, t } = useLanguage();
   const [profilePicture, setProfilePicture] = useState("");
   const [selectedImagePreview, setSelectedImagePreview] = useState("");
+  const [pendingImage, setPendingImage] = useState(null);
   const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
   const [defaultAnonymous, setDefaultAnonymous] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
   const displayName =
     (typeof user?.name === "string" && user.name.trim()) ||
@@ -59,29 +60,54 @@ export default function SettingsPage() {
     try {
       setError(null);
       setSuccess(null);
+      setSaving(true);
 
-      const res = await fetch("/api/settings/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          default_anonymous: defaultAnonymous,
-          ...(removeProfilePicture ? { profile_picture: null } : {}),
-        }),
-      });
-      const data = await res.json().catch(() => null);
+      if (pendingImage) {
+        const formData = new FormData();
+        formData.append("file", pendingImage);
+        const uploadResponse = await fetch("/api/settings/profile-picture", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadData = await uploadResponse.json().catch(() => null);
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData?.error || "Unable to upload profile picture");
+        }
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Unable to save settings");
+        setProfilePicture(uploadData?.profile_picture || "");
+        setPendingImage(null);
+        setSelectedImagePreview("");
+        setRemoveProfilePicture(false);
+      } else if (removeProfilePicture) {
+        const removeResponse = await fetch("/api/settings/profile-picture", {
+          method: "DELETE",
+        });
+        const removeData = await removeResponse.json().catch(() => null);
+        if (!removeResponse.ok) {
+          throw new Error(removeData?.error || "Unable to remove profile picture");
+        }
+
+        setProfilePicture("");
+        setRemoveProfilePicture(false);
       }
 
-      setSuccess(
-        selectedImagePreview
-          ? "The selected image is only a preview and has not been stored permanently."
-          : "Settings saved",
-      );
+      const settingsResponse = await fetch("/api/settings/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ default_anonymous: defaultAnonymous }),
+      });
+      const settingsData = await settingsResponse.json().catch(() => null);
+
+      if (!settingsResponse.ok) {
+        throw new Error(settingsData?.error || "Unable to save settings");
+      }
+
+      setSuccess("Settings saved");
     } catch (err) {
       console.error(err);
       setError(messageKeyFromError(err instanceof Error ? err.message : "", "Could not save settings"));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -90,17 +116,13 @@ export default function SettingsPage() {
     event.target.value = "";
     if (!file) return;
 
-    if (!allowedImageTypes.has(file.type)) {
-      setError("Choose a JPG, PNG, or WebP image.");
-      return;
-    }
-
-    if (file.size > maxImageSize) {
-      setError("The image must be 5 MB or smaller.");
+    if (file.size === 0 || file.size > maxImageSize) {
+      setError(file.size === 0 ? "The selected image is empty." : "The image must be 1 MB or smaller.");
       return;
     }
 
     setSelectedImagePreview(URL.createObjectURL(file));
+    setPendingImage(file);
     setRemoveProfilePicture(false);
     setError(null);
     setSuccess(null);
@@ -108,6 +130,7 @@ export default function SettingsPage() {
 
   const handleRemoveProfilePicture = () => {
     setSelectedImagePreview("");
+    setPendingImage(null);
     setRemoveProfilePicture(true);
     setError(null);
     setSuccess(null);
@@ -234,7 +257,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                {t("JPG, PNG or WebP, maximum 5 MB. Selected images are only previewed and are not stored permanently yet.")}
+                {t("JPG, PNG or WebP, maximum 1 MB. Images are checked before upload.")}
               </p>
             </div>
 
@@ -258,9 +281,10 @@ export default function SettingsPage() {
 
             <button
               type="submit"
+              disabled={saving}
               className="w-full rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
             >
-              {t("Save")}
+              {saving ? t("Saving...") : t("Save")}
             </button>
           </form>
         </div>
