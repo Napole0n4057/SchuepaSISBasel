@@ -147,7 +147,7 @@ export async function POST(request) {
     }
 
     return Response.json({ profile_picture: savedSettings[0].profile_picture });
-  } catch {
+  } catch (error) {
     if (uploaded && uploadedKey) {
       try {
         await deleteProfilePictureObject(uploadedKey);
@@ -155,8 +155,16 @@ export async function POST(request) {
         console.warn("Unreferenced profile picture cleanup failed");
       }
     }
-    console.error("POST /api/settings/profile-picture failed");
-    return Response.json({ error: "Unable to upload profile picture" }, { status: 500 });
+
+    console.error("POST /api/settings/profile-picture failed:", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    return Response.json(
+      { error: "Unable to upload profile picture" },
+      { status: 500 },
+    );
   }
 }
 
