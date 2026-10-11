@@ -216,49 +216,10 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            {/* Profile picture upload preview */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                {t("Profile picture")}
-              </label>
-              <div className="flex flex-wrap items-center gap-4">
-                <ProfileAvatar
-                  src={displayedProfilePicture}
-                  name={displayName}
-                  className="h-20 w-20"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleImageSelection}
-                    className="sr-only"
-                    aria-label={t("Choose profile picture")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50"
-                  >
-                    {displayedProfilePicture
-                      ? t("Change profile picture")
-                      : t("Upload profile picture")}
-                  </button>
-                  {displayedProfilePicture && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveProfilePicture}
-                      className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      {t("Remove picture")}
-                    </button>
-                  )}
-                </div>
-              </div>
-              <p className="mt-2 text-xs text-gray-500">
-                {t("JPG, PNG or WebP, maximum 1 MB. Images are checked before upload.")}
-              </p>
+            {/* Profile picture upload temporarily disabled.
+    The implementation is preserved for future use. */}
+            <div className="rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+              {t("Profile picture upload temporarily disabled. The implementation is preserved for future use.")}
             </div>
 
             {/* Default Anonymous */}
