@@ -29,6 +29,7 @@ export async function GET(request) {
 				status: 401,
 				headers: {
 					'Content-Type': 'text/html',
+					'Cache-Control': 'no-store',
 				},
 			}
 		);
@@ -57,6 +58,7 @@ export async function GET(request) {
 		{
 			headers: {
 				'Content-Type': 'text/html',
+				'Cache-Control': 'no-store',
 			},
 		}
 	);

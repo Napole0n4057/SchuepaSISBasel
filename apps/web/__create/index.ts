@@ -72,6 +72,22 @@ app.use('*', (c, next) => {
 app.use(contextStorage());
 
 app.onError((err, c) => {
+  if (!import.meta.env.DEV) {
+    console.error('Unhandled application error', err);
+
+    if (c.req.method !== 'GET') {
+      return c.json({ error: 'Internal Server Error' }, 500);
+    }
+
+    return c.html(
+      getHTMLForErrorPage({
+        name: 'Error',
+        message: 'Internal Server Error',
+      }),
+      500
+    );
+  }
+
   if (c.req.method !== 'GET') {
     return c.json(
       {
@@ -137,7 +153,7 @@ app.use(
       basePath: '/api/auth',
       trustHost: true,
       // AUTH_URL is also used for the public origin and secure-cookie setup.
-      // Auth.js 0.37.4 warns whenever it is set alongside an explicit basePath,
+      // Auth.js warns whenever it is set alongside an explicit basePath,
       // even though this Hono route must keep its /api/auth path. Filter only
       // that redundant warning and keep forwarding all other Auth.js warnings.
       logger: {

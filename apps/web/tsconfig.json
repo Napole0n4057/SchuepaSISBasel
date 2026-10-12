@@ -15,7 +15,6 @@
 		"jsx": "react-jsx",
 		"allowJs": true,
 		"rootDirs": [".", "./.react-router/types"],
-		"baseUrl": ".",
 		"esModuleInterop": true,
 		"verbatimModuleSyntax": true,
 		"noEmit": true,

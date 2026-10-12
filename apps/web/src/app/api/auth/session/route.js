@@ -1,6 +1,8 @@
 import { getToken } from "@auth/core/jwt";
 import sql from "../../../../app/api/utils/sql.js";
 
+const noStoreHeaders = { "Cache-Control": "no-store" };
+
 export async function GET(request) {
   try {
     const secureCookie = process.env.AUTH_URL
@@ -13,7 +15,7 @@ export async function GET(request) {
     });
 
     if (!token) {
-      return Response.json(null);
+      return Response.json(null, { headers: noStoreHeaders });
     }
 
     let accountName = token.name;
@@ -34,17 +36,23 @@ export async function GET(request) {
       }
     }
 
-    return Response.json({
-      user: {
-        id: token.sub,
-        email: token.email,
-        name: accountName,
-        image: token.picture,
+    return Response.json(
+      {
+        user: {
+          id: token.sub,
+          email: token.email,
+          name: accountName,
+          image: token.picture,
+        },
+        expires: token.exp ? token.exp.toString() : null,
       },
-      expires: token.exp ? token.exp.toString() : null,
-    });
+      { headers: noStoreHeaders }
+    );
   } catch (err) {
     console.error("GET /api/auth/session error", err);
-    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+    return Response.json(
+      { error: "Internal Server Error" },
+      { status: 500, headers: noStoreHeaders }
+    );
   }
 }
