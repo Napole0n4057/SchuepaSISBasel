@@ -2,13 +2,22 @@ import { getToken } from '@auth/core/jwt';
 import { getContext } from 'hono/context-storage';
 import sql from '../../app/api/utils/sql.js';
 
+function normalizeEnvValue(rawValue) {
+	if (typeof rawValue !== 'string') return undefined;
+	const trimmed = rawValue.trim();
+	if (!trimmed) return undefined;
+	return trimmed.replace(/^['"]|['"]$/g, '');
+}
+
 export default function CreateAuth() {
 	const auth = async () => {
 		const c = getContext();
+		const authSecret = normalizeEnvValue(c.env.AUTH_SECRET ?? process.env.AUTH_SECRET);
+		const authUrl = normalizeEnvValue(c.env.AUTH_URL ?? process.env.AUTH_URL);
 		const token = await getToken({
 			req: c.req.raw,
-			secret: process.env.AUTH_SECRET,
-			secureCookie: process.env.AUTH_URL.startsWith('https'),
+			secret: authSecret,
+			secureCookie: authUrl?.startsWith('https') ?? false,
 		});
 		if (token && typeof token.sub === 'string') {
 			const activeAccount = await sql`

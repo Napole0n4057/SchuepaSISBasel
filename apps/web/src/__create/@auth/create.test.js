@@ -15,8 +15,12 @@ import CreateAuth from './create.js';
 describe('authenticated account status', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.AUTH_SECRET = 'process-secret-that-is-at-least-thirty-two-characters';
     process.env.AUTH_URL = 'https://example.org';
-    fixtures.getContext.mockReturnValue({ req: { raw: new Request('https://example.org') } });
+    fixtures.getContext.mockReturnValue({
+      env: {},
+      req: { raw: new Request('https://example.org') },
+    });
     fixtures.getToken.mockResolvedValue({
       sub: 'user-id',
       email: 'user@example.org',
@@ -33,6 +37,26 @@ describe('authenticated account status', () => {
     });
     expect(fixtures.sql).toHaveBeenCalledOnce();
     expect(fixtures.sql.mock.calls[0][1]).toBe('user-id');
+    expect(fixtures.sql.mock.calls[0][0].join(' ')).toContain('au.id = ');
+  });
+
+  it('verifies JWTs with the same normalized secret and URL source as auth config', async () => {
+    const { auth } = CreateAuth();
+    fixtures.getContext.mockReturnValue({
+      env: {
+        AUTH_SECRET: ' "context-secret-that-is-at-least-thirty-two-characters" ',
+        AUTH_URL: 'https://context.example.org',
+      },
+      req: { raw: new Request('https://context.example.org') },
+    });
+
+    await auth();
+
+    expect(fixtures.getToken).toHaveBeenCalledWith({
+      req: expect.any(Request),
+      secret: 'context-secret-that-is-at-least-thirty-two-characters',
+      secureCookie: true,
+    });
   });
 
   it('rejects JWTs for deleted accounts', async () => {
