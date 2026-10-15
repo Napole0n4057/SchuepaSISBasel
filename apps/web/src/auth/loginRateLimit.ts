@@ -9,15 +9,13 @@ export const LOGIN_RATE_LIMIT_POLICY = Object.freeze({
   cooldownSeconds: 60,
 });
 
-export function getTrustedClientIp(
-  forwardedFor: string | undefined,
+export function getConnectionPeerIp(
+  remoteAddress: string | undefined,
   { development = false }: { development?: boolean } = {},
 ) {
-  // Render appends the client address as the final X-Forwarded-For hop.
-  const addresses = typeof forwardedFor === 'string' ? forwardedFor.split(',') : [];
-  const address = addresses.at(-1)?.trim() ?? '';
+  const address = typeof remoteAddress === 'string' ? remoteAddress.trim() : '';
   if (address && isIP(address)) return address.toLowerCase();
-  if (development && addresses.length === 0) return '127.0.0.1';
+  if (development && !address) return '127.0.0.1';
   throw new Error('Trusted client IP is unavailable');
 }
 

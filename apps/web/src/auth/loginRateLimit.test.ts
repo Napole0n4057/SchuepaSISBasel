@@ -3,7 +3,7 @@ import {
   LOGIN_RATE_LIMIT_POLICY,
   clearAccountSourceFailures,
   createLoginRateLimitBuckets,
-  getTrustedClientIp,
+  getConnectionPeerIp,
   isLoginRateLimited,
   recordLoginFailure,
 } from './loginRateLimit';
@@ -11,15 +11,12 @@ import {
 const secret = 'test-secret-that-is-at-least-thirty-two-characters-long';
 
 describe('login rate limiting', () => {
-  it('uses the rightmost IP appended by the trusted Render proxy', () => {
-    expect(getTrustedClientIp('203.0.113.9')).toBe('203.0.113.9');
-    expect(getTrustedClientIp('198.51.100.77, 203.0.113.9')).toBe('203.0.113.9');
-    expect(() => getTrustedClientIp(undefined)).toThrow('Trusted client IP is unavailable');
-    expect(() => getTrustedClientIp('not-an-ip')).toThrow('Trusted client IP is unavailable');
-    expect(() => getTrustedClientIp('203.0.113.9, not-an-ip')).toThrow(
-      'Trusted client IP is unavailable',
-    );
-    expect(getTrustedClientIp(undefined, { development: true })).toBe('127.0.0.1');
+  it('uses a validated socket peer and never relies on forwarded headers', () => {
+    expect(getConnectionPeerIp('203.0.113.9')).toBe('203.0.113.9');
+    expect(getConnectionPeerIp('  2001:DB8::1  ')).toBe('2001:db8::1');
+    expect(() => getConnectionPeerIp(undefined)).toThrow('Trusted client IP is unavailable');
+    expect(() => getConnectionPeerIp('not-an-ip')).toThrow('Trusted client IP is unavailable');
+    expect(getConnectionPeerIp(undefined, { development: true })).toBe('127.0.0.1');
   });
 
   it('creates stable, private account and source buckets', () => {

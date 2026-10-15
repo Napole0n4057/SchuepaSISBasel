@@ -13,11 +13,12 @@ import { proxy } from 'hono/proxy';
 import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import { createHonoServer } from 'react-router-hono-server/node';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import { serializeError } from 'serialize-error';
 import {
   clearAccountSourceFailures,
   createLoginRateLimitBuckets,
-  getTrustedClientIp,
+  getConnectionPeerIp,
   isLoginRateLimited,
   recordLoginFailure,
 } from '../src/auth/loginRateLimit';
@@ -269,7 +270,7 @@ app.use(
 
             let rateLimitBuckets;
             try {
-              const clientIp = getTrustedClientIp(c.req.header('x-forwarded-for'), {
+              const clientIp = getConnectionPeerIp(getConnInfo(c).remote.address, {
                 development: import.meta.env.DEV,
               });
               rateLimitBuckets = createLoginRateLimitBuckets({
