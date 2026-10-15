@@ -35,10 +35,16 @@ export default function SignInPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const errorCode = new URLSearchParams(window.location.search).get("error");
+    const query = new URLSearchParams(window.location.search);
+    const errorCode = query.get("error");
+    const credentialError = query.get("code");
     if (errorCode) {
       setError(
-        errorMessages[errorCode] || "Something went wrong",
+        errorCode === "CredentialsSignin" && credentialError === "rate_limited"
+          ? "Too many sign-in attempts. Please wait one minute before trying again."
+          : errorCode === "CredentialsSignin" && credentialError === "unavailable"
+            ? "Sign-in is unavailable right now"
+            : errorMessages[errorCode] || "Something went wrong",
       );
     }
 

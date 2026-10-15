@@ -72,6 +72,28 @@ CREATE TABLE IF NOT EXISTS blog_posts (
   updated_at timestamp
 );
 
+CREATE TABLE IF NOT EXISTS login_rate_limit_buckets (
+  bucket_hash text PRIMARY KEY CHECK (bucket_hash ~ '^[a-f0-9]{64}$'),
+  failures integer NOT NULL CHECK (failures > 0),
+  max_failures integer NOT NULL CHECK (max_failures > 0),
+  window_started_at timestamptz NOT NULL,
+  blocked_until timestamptz,
+  updated_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS student_classes (
+  user_id uuid PRIMARY KEY REFERENCES auth_users(id) ON DELETE CASCADE,
+  programme text NOT NULL CHECK (programme IN ('Gym', 'Int')),
+  year smallint NOT NULL CHECK (year BETWEEN 1 AND 6),
+  updated_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS student_class_rollovers (
+  academic_year text PRIMARY KEY,
+  effective_on date NOT NULL UNIQUE,
+  processed_at timestamptz NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS forum_posts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -145,3 +167,5 @@ CREATE INDEX IF NOT EXISTS idx_forum_votes_post_id ON forum_votes(post_id);
 CREATE INDEX IF NOT EXISTS idx_forum_votes_comment_id ON forum_votes(comment_id);
 CREATE INDEX IF NOT EXISTS idx_vote_options_vote_id ON vote_options(vote_id);
 CREATE INDEX IF NOT EXISTS idx_user_votes_vote_id ON user_votes(vote_id);
+CREATE INDEX IF NOT EXISTS idx_login_rate_limit_buckets_updated_at
+  ON login_rate_limit_buckets(updated_at);

@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import nodeConsole from 'node:console';
 import { webcrypto } from 'node:crypto';
 import Credentials from '@auth/core/providers/credentials';
+import { CredentialsSignin } from '@auth/core/errors';
 import { authHandler, initAuthConfig } from '@hono/auth-js';
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { verify as argonVerify } from 'argon2';
@@ -13,10 +14,18 @@ import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import { createHonoServer } from 'react-router-hono-server/node';
 import { serializeError } from 'serialize-error';
+import {
+  clearAccountSourceFailures,
+  createLoginRateLimitBuckets,
+  getTrustedClientIp,
+  isLoginRateLimited,
+  recordLoginFailure,
+} from '../src/auth/loginRateLimit';
 import ws from 'ws';
 import NeonAdapter from './adapter';
 import { getHTMLForErrorPage } from './get-html-for-error-page';
 import { API_BASENAME, api } from './route-builder';
+import { baselCalendarDate, processDueStudentClassRollovers } from '../src/studentClassRollovers.js';
 
 neonConfig.webSocketConstructor = ws;
 
@@ -60,7 +69,24 @@ const pool = new Pool({
 });
 const adapter = NeonAdapter(pool);
 
+class RateLimitedCredentialsSignin extends CredentialsSignin {
+  constructor() {
+    super();
+    this.code = 'rate_limited';
+  }
+}
+
+class RateLimiterUnavailableSignin extends CredentialsSignin {
+  constructor() {
+    super();
+    this.code = 'unavailable';
+  }
+}
+
 const app = new Hono();
+let completedRolloverCheckDate: string | undefined;
+let lastRolloverAttemptDate: string | undefined;
+let lastRolloverAttemptAt = 0;
 
 app.use('*', requestId());
 
@@ -98,6 +124,39 @@ app.onError((err, c) => {
     );
   }
   return c.html(getHTMLForErrorPage(err), 200);
+});
+
+// Process a due school-year rollover on the first request for that Basel date.
+// The database marker makes this safe across requests and Render instances.
+app.use('*', async (c, next) => {
+  const today = baselCalendarDate();
+  const now = Date.now();
+  if (
+    completedRolloverCheckDate !== today &&
+    (lastRolloverAttemptDate !== today || now - lastRolloverAttemptAt >= 60_000)
+  ) {
+    lastRolloverAttemptDate = today;
+    lastRolloverAttemptAt = now;
+    try {
+      await processDueStudentClassRollovers(
+        (strings: TemplateStringsArray, ...values: unknown[]) => {
+          const query = strings.reduce(
+            (text, part, index) =>
+              text + part + (index < values.length ? `$${index + 1}` : ''),
+            ''
+          );
+          return pool.query(query, values).then((result) => result.rows);
+        },
+        today
+      );
+      completedRolloverCheckDate = today;
+    } catch {
+      // Keep serving normal requests and retry after a short delay if Neon is
+      // temporarily unavailable. A failed SQL statement cannot claim a year.
+      console.error('Student class rollover check failed');
+    }
+  }
+  return next();
 });
 
 if (process.env.CORS_ORIGINS) {
@@ -204,9 +263,42 @@ app.use(
             }
 
             const normalizedEmail = email.trim().toLowerCase();
+            if (!normalizedEmail || normalizedEmail.length > 320 || password.length > 1024) {
+              return null;
+            }
+
+            let rateLimitBuckets;
+            try {
+              const clientIp = getTrustedClientIp(c.req.header('x-forwarded-for'), {
+                development: import.meta.env.DEV,
+              });
+              rateLimitBuckets = createLoginRateLimitBuckets({
+                email: normalizedEmail,
+                clientIp,
+                secret: authSecret,
+              });
+              if (await isLoginRateLimited(pool, rateLimitBuckets)) {
+                throw new RateLimitedCredentialsSignin();
+              }
+            } catch (error) {
+              if (error instanceof RateLimitedCredentialsSignin) throw error;
+              console.error('Credential sign-in rate-limit check failed');
+              throw new RateLimiterUnavailableSignin();
+            }
+
+            const recordFailure = async () => {
+              try {
+                await recordLoginFailure(pool, rateLimitBuckets);
+              } catch {
+                console.error('Credential sign-in failure could not be recorded');
+                throw new RateLimiterUnavailableSignin();
+              }
+              return null;
+            };
+
             const user = await adapter.getUserByEmail(normalizedEmail);
             if (!user) {
-              return null;
+              return recordFailure();
             }
 
             const credentialsAccount = user.accounts.find(
@@ -214,12 +306,19 @@ app.use(
             );
             const passwordHash = credentialsAccount?.password;
             if (!passwordHash) {
-              return null;
+              return recordFailure();
             }
 
             const isValid = await argonVerify(passwordHash, password);
             if (!isValid) {
-              return null;
+              return recordFailure();
+            }
+
+            try {
+              await clearAccountSourceFailures(pool, rateLimitBuckets);
+            } catch {
+              console.error('Credential sign-in rate-limit state could not be cleared');
+              throw new RateLimiterUnavailableSignin();
             }
 
             return user;

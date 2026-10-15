@@ -1,47 +1,7 @@
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
 import { messageKeyFromError, useLanguage } from "@/i18n";
-
-function parseUsersFromText(rawText) {
-  const lines = rawText.trim().split("\n");
-  const users = [];
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    // Supported formats:
-    // 1) Name, email@sis.ch, password
-    // 2) Name<TAB>email@sis.ch<TAB>password
-    // 3) email@sis.ch password
-    if (trimmed.includes("\t")) {
-      const [name, email, password] = trimmed
-        .split("\t")
-        .map((value) => value.trim());
-      if (email && password) {
-        users.push({ name: name || undefined, email, password });
-      }
-      continue;
-    }
-
-    if (trimmed.includes(",")) {
-      const [name, email, password] = trimmed
-        .split(",")
-        .map((value) => value.trim());
-      if (email && password) {
-        users.push({ name: name || undefined, email, password });
-      }
-      continue;
-    }
-
-    const [email, password] = trimmed.split(/\s+/, 2);
-    if (email && password) {
-      users.push({ email, password });
-    }
-  }
-
-  return users;
-}
+import { parseUsersFromText } from "@/studentAccountImport";
 
 export default function AdminPage() {
   const { data: user, loading: userLoading } = useUser();
@@ -162,6 +122,35 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteAccount = async (userId, email) => {
+    try {
+      setError(null);
+      setSuccess(null);
+
+      const confirmed = window.confirm(
+        t("Delete account for {email}? This action cannot be undone.", { email }),
+      );
+      if (!confirmed) return;
+
+      const res = await fetch("/api/users/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, confirm: true }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete account");
+      }
+
+      setSuccess({ key: "Account deleted for {email}", values: { email } });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      setError(messageKeyFromError(err.message, "Error deleting account"));
+    }
+  };
+
   // Removed: create-user, allowed-emails, and student-accounts handlers
 
   const handleBulkImport = async (e) => {
@@ -252,6 +241,7 @@ export default function AdminPage() {
   const isAdmin = currentUserRole?.designation === "admin";
   const isSpectator = currentUserRole?.designation === "spectator";
   const hasAdminAccess = isAdmin || isSpectator;
+  const adminCount = users.filter((userRecord) => userRecord.designation === "admin").length;
 
   if (!hasAdminAccess) {
     return (
@@ -315,12 +305,20 @@ export default function AdminPage() {
               </p>
             </div>
           </div>
-          <a
-            href="/account/logout"
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            {t("Log out")}
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="/admin/classes"
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-white"
+            >
+              {t("Manage student classes")}
+            </a>
+            <a
+              href="/account/logout"
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              {t("Log out")}
+            </a>
+          </div>
         </div>
 
         {error && (
@@ -337,7 +335,7 @@ export default function AdminPage() {
 
         {isSpectator && (
           <div className="mb-6 rounded-md bg-blue-50 border border-blue-200 p-4 text-sm text-blue-600">
-            {t("You can view everything, but only admins can make changes.")}
+            {t("Only class changes are available to spectators.")}
           </div>
         )}
 
@@ -428,6 +426,19 @@ export default function AdminPage() {
                             {t("Reset password")}
                           </button>
                         )}
+                        {isAdmin && (
+                          u.designation === "admin" && adminCount <= 1 ? (
+                            <span className="text-xs text-gray-400">{t("Last admin")}</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAccount(u.user_id, u.email)}
+                              className="rounded-md border border-red-300 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+                            >
+                              {t("Delete account")}
+                            </button>
+                          )
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -451,12 +462,12 @@ export default function AdminPage() {
             <p className="mb-4 text-sm text-gray-600">
               {t("Format A (recommended):")}{" "}
               <code className="bg-gray-100 px-2 py-1 rounded">
-                Max Muster, max@sisbasel.ch, Password123!
+                Max Muster, max@sisbasel.ch, Password123!, Gym, 1
               </code>
               <br />
               {t("Format B (legacy):")}{" "}
               <code className="bg-gray-100 px-2 py-1 rounded">
-                email@sisbasel.ch password123
+                email@sisbasel.ch password123 Int 2
               </code>
             </p>
             <form onSubmit={handleBulkImport} className="space-y-4">

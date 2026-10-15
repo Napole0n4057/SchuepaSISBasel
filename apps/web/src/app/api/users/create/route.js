@@ -1,6 +1,7 @@
 import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
 import { hash } from "argon2";
+import { isValidStudentClass } from "../../../../studentClasses.js";
 
 export async function POST(request) {
   try {
@@ -27,13 +28,20 @@ export async function POST(request) {
       );
     }
 
-    const body = await request.json();
-    const { email, password } = body;
+    const body = (await request.json()) || {};
+    const { email, password, programme, year } = body;
     const providedName = typeof body.name === "string" ? body.name.trim() : "";
 
-    if (!email || !password) {
+    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
       return Response.json(
         { error: "Missing email or password" },
+        { status: 400 },
+      );
+    }
+
+    if (!isValidStudentClass(programme, year)) {
+      return Response.json(
+        { error: "A valid student programme and year are required" },
         { status: 400 },
       );
     }
@@ -57,26 +65,31 @@ export async function POST(request) {
         ? providedName
         : normalizedEmail.split("@")[0].replace(/[._-]+/g, " ").trim();
 
-    // Create user in auth_users
     const newUser = await sql`
-      INSERT INTO auth_users (email, name, "emailVerified")
-      VALUES (${normalizedEmail}, ${resolvedName}, NOW())
-      RETURNING id, email
+      WITH new_user AS (
+        INSERT INTO auth_users (email, name, "emailVerified")
+        VALUES (${normalizedEmail}, ${resolvedName}, NOW())
+        RETURNING id, email
+      ), new_account AS (
+        INSERT INTO auth_accounts ("userId", type, provider, "providerAccountId", password)
+        SELECT id, 'credentials', 'credentials', email, ${hashedPassword}
+        FROM new_user
+        RETURNING id
+      ), new_role AS (
+        INSERT INTO user_roles (user_id, email, designation)
+        SELECT id, email, 'member'
+        FROM new_user
+        RETURNING id
+      ), new_class AS (
+        INSERT INTO student_classes (user_id, programme, year)
+        SELECT id, ${programme}, ${year}
+        FROM new_user
+        RETURNING user_id
+      )
+      SELECT id, email FROM new_user
     `;
 
     const userId = newUser[0].id;
-
-    // Create credentials account
-    await sql`
-      INSERT INTO auth_accounts ("userId", type, provider, "providerAccountId", password)
-      VALUES (${userId}, 'credentials', 'credentials', ${normalizedEmail}, ${hashedPassword})
-    `;
-
-    // Create user role (default to member)
-    await sql`
-      INSERT INTO user_roles (user_id, email, designation)
-      VALUES (${userId.toString()}, ${normalizedEmail}, 'member')
-    `;
 
     return Response.json({
       success: true,
