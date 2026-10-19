@@ -3,6 +3,7 @@ import {
   calculateVoteResults,
   formatSwissDeadline,
   matchesVoteClass,
+  voteHasEnded,
 } from "./voteResults";
 
 describe("vote result and class helpers", () => {
@@ -43,11 +44,22 @@ describe("vote result and class helpers", () => {
   });
 
   it("keeps school-wide votes in every class filter and matches each assigned class", () => {
-    expect(matchesVoteClass({ class_names: [] }, "G2")).toBe(true);
-    expect(matchesVoteClass({ class_names: ["G2", "IB 1"] }, "G2")).toBe(true);
-    expect(matchesVoteClass({ class_names: ["G2", "IB 1"] }, "IB 1")).toBe(true);
-    expect(matchesVoteClass({ class_names: ["G2", "IB 1"] }, "S1")).toBe(false);
-    expect(matchesVoteClass({ class_names: ["G2"] }, "")).toBe(true);
+    expect(matchesVoteClass({ class_names: [] }, "Gym 2")).toBe(true);
+    expect(matchesVoteClass({ class_names: ["Gym 2", "Int 1"] }, "Gym 2")).toBe(true);
+    expect(matchesVoteClass({ class_names: ["Gym 2", "Int 1"] }, "Int 1")).toBe(true);
+    expect(matchesVoteClass({ class_names: ["Gym 2", "Int 1"] }, "Gym 1")).toBe(false);
+    expect(matchesVoteClass({ class_names: ["Gym 2"] }, "")).toBe(true);
+  });
+
+  it("moves votes to history at the exact deadline even with a stale active status", () => {
+    const vote = { is_active: true, status: "active", ends_at: "2026-10-19T10:00:00" };
+    const deadline = Date.parse("2026-10-19T10:00:00Z");
+    expect(voteHasEnded(vote, deadline - 1)).toBe(false);
+    expect(voteHasEnded(vote, deadline)).toBe(true);
+    expect(voteHasEnded(vote, deadline + 1)).toBe(true);
+    expect(voteHasEnded({ ...vote, ends_at: null }, deadline)).toBe(false);
+    expect(voteHasEnded({ ...vote, is_active: false }, deadline - 1)).toBe(true);
+    expect(voteHasEnded({ ...vote, is_active: null }, deadline - 1)).toBe(true);
   });
 
   it("formats a UTC wall-time deadline as Swiss local time in either language", () => {

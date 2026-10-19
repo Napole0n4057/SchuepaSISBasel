@@ -143,6 +143,9 @@ CREATE TABLE IF NOT EXISTS vote_options (
 CREATE TABLE IF NOT EXISTS vote_classes (
   vote_id uuid NOT NULL REFERENCES votes(id),
   class_name text NOT NULL CHECK (class_name IN (
+    'Gym 1', 'Gym 2', 'Gym 3', 'Gym 4', 'Gym 5', 'Gym 6',
+    'Int 1', 'Int 2', 'Int 3', 'Int 4', 'Int 5', 'Int 6',
+    -- Retain legacy associations; new votes only accept the canonical labels above.
     'S1', 'S2', 'G1', 'G2', 'G3', 'G4',
     'Pre-IB 1', 'Pre-IB 2', 'IBDP 1', 'IBDP 2', 'IB 1', 'IB 2'
   )),

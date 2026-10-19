@@ -35,6 +35,7 @@ import { useSandboxStore } from '../__create/hmr-sandbox-store';
 import type { Route } from './+types/root';
 import { useDevServerHeartbeat } from '../__create/useDevServerHeartbeat';
 import { LanguageProvider, useLanguage } from '../i18n';
+import { SectionNotificationProvider } from '../components/SectionNotifications';
 
 export const links = () => [];
 
@@ -486,7 +487,7 @@ export function Layout({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <SessionProvider>
-      <Outlet />
+      <SectionNotificationProvider><Outlet /></SectionNotificationProvider>
     </SessionProvider>
   );
 }

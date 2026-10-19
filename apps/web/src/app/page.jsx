@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import { useLanguage } from "@/i18n";
+import { NotificationDot, useSectionNotifications } from "@/components/SectionNotifications";
 
 export default function HomePage() {
   const { data: user, loading: userLoading } = useUser();
@@ -9,6 +10,25 @@ export default function HomePage() {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [blogPosts, setBlogPosts] = useState([]);
+  const blogSection = useRef(null);
+  const { markSeen } = useSectionNotifications();
+
+  useEffect(() => {
+    if (!user || !blogPosts.length || !blogSection.current) return undefined;
+    const markBlogSeen = () => markSeen("blog", blogPosts);
+    if (!("IntersectionObserver" in window)) {
+      markBlogSeen();
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        markBlogSeen();
+        observer.disconnect();
+      }
+    });
+    observer.observe(blogSection.current);
+    return () => observer.disconnect();
+  }, [user?.id, blogPosts, loading, markSeen]);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -34,6 +54,7 @@ export default function HomePage() {
   const fetchBlogPosts = async () => {
     try {
       const res = await fetch("/api/blog/list");
+      if (!res.ok) throw new Error("Could not load data");
       const data = await res.json();
       setBlogPosts(data.posts || []);
     } catch (err) {
@@ -123,6 +144,7 @@ export default function HomePage() {
           >
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               {t("Votes")}
+              <NotificationDot section="votes" />
             </h3>
             <p className="text-sm text-gray-600">
               {t("Vote and view results")}
@@ -135,6 +157,7 @@ export default function HomePage() {
           >
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               {t("Community Forum")}
+              <NotificationDot section="forum" />
             </h3>
             <p className="text-sm text-gray-600">
               {t("Discuss and share")}
@@ -159,8 +182,9 @@ export default function HomePage() {
         {/* Official Blog Section */}
         <div className="rounded-lg bg-white p-6 shadow-md border border-gray-200">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 ref={blogSection} className="text-2xl font-bold text-gray-900">
               {t("Official Blog")}
+              <NotificationDot section="blog" />
             </h2>
             {userRole?.designation === "admin" && (
               <a

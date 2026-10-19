@@ -1,5 +1,9 @@
 import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
+import {
+  CAST_VOTE_SQL,
+  getVisibleVotes,
+} from "../../utils/voteAccess.js";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -51,17 +55,9 @@ export async function POST(request) {
       return Response.json({ error: "vote_id and option_id must be valid UUIDs" }, { status: 400 });
     }
 
-    // Use the same UTC wall-time comparison as the list endpoint for timestamp columns without a timezone.
-    const vote = await sql`
-      SELECT *
-      FROM votes
-      WHERE id = ${vote_id}
-        AND deleted_at IS NULL
-        AND is_active IS TRUE
-        AND (ends_at IS NULL OR ends_at > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
-    `;
+    const vote = await getVisibleVotes(session.user.id, vote_id);
 
-    if (vote.length === 0) {
+    if (vote.length === 0 || vote[0].status !== "active") {
       return Response.json(
         { error: "Vote not found, inactive, or expired" },
         { status: 404 },
@@ -88,14 +84,13 @@ export async function POST(request) {
       );
     }
 
-    // Upsert user vote (allows changing vote)
-    const result = await sql`
-      INSERT INTO user_votes (vote_id, option_id, user_id, voted_at)
-      VALUES (${vote_id}, ${option_id}, ${session.user.id}, NOW())
-      ON CONFLICT (vote_id, user_id)
-      DO UPDATE SET option_id = ${option_id}, voted_at = NOW()
-      RETURNING *
-    `;
+    // Recheck access and the deadline in the write itself, including changed votes.
+    // A request that passed the earlier read must still be eligible when it writes.
+    const result = await sql(CAST_VOTE_SQL, [session.user.id, vote_id, option_id]);
+
+    if (result.length === 0) {
+      return Response.json({ error: "Vote not found, inactive, or expired" }, { status: 404 });
+    }
 
     return Response.json({ success: true, vote: result[0] });
   } catch (err) {

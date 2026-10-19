@@ -9,26 +9,15 @@ import {
 } from "recharts";
 import useUser from "@/utils/useUser";
 import { messageKeyFromError, useLanguage } from "@/i18n";
+import { STUDENT_CLASS_NAMES as ALLOWED_CLASSES } from "@/studentClasses";
+import { NotificationDot, useSectionNotifications } from "@/components/SectionNotifications";
+import { contentTime } from "@/utils/sectionNotifications";
 import {
   calculateVoteResults,
   formatSwissDeadline,
   matchesVoteClass,
+  voteHasEnded,
 } from "./voteResults";
-
-const ALLOWED_CLASSES = [
-  "S1",
-  "S2",
-  "G1",
-  "G2",
-  "G3",
-  "G4",
-  "Pre-IB 1",
-  "Pre-IB 2",
-  "IBDP 1",
-  "IBDP 2",
-  "IB 1",
-  "IB 2",
-];
 
 const RESULT_COLORS = ["#093388", "#009EE0", "#4c77bd", "#62c5ed", "#7f9ac6", "#a6def3"];
 
@@ -121,6 +110,23 @@ export default function VotesPage() {
   const [classFilter, setClassFilter] = useState("");
   const [showPastVotes, setShowPastVotes] = useState(false);
   const [selectedResultVoteId, setSelectedResultVoteId] = useState(null);
+  const [now, setNow] = useState(Date.now);
+  const { markSeen } = useSectionNotifications();
+
+  useEffect(() => {
+    if (user && !loading && !error) markSeen("votes", votes);
+  }, [user?.id, loading, error, votes, markSeen]);
+
+  useEffect(() => {
+    const deadlines = votes.filter((vote) => vote.status === "active" && vote.ends_at)
+      .map((vote) => contentTime(vote.ends_at)).filter((deadline) => deadline > now);
+    if (!deadlines.length) return undefined;
+    const timer = window.setTimeout(() => {
+      setNow(Date.now());
+      fetchVotes();
+    }, Math.min(2147483647, Math.max(0, Math.min(...deadlines) - Date.now())));
+    return () => window.clearTimeout(timer);
+  }, [votes, now]);
 
   // Create vote state (for admins)
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -141,6 +147,8 @@ export default function VotesPage() {
     if (!userLoading && user) {
       fetchUserRole();
       fetchVotes();
+    } else if (!userLoading) {
+      setLoading(false);
     }
   }, [user, userLoading]);
 
@@ -161,6 +169,7 @@ export default function VotesPage() {
       if (!res.ok) throw new Error("Error loading votes");
       const data = await res.json();
       setVotes(Array.isArray(data.votes) ? data.votes : []);
+      setNow(Date.now());
       setError(null);
     } catch (err) {
       console.error(err);
@@ -295,11 +304,7 @@ export default function VotesPage() {
 
   const isAdmin = userRole?.designation === "admin";
   const isSpectator = userRole?.designation === "spectator";
-  const isPastVote = (vote) =>
-    vote.status === "past" ||
-    (vote.status !== "active" &&
-      (vote.is_active === false ||
-        (vote.ends_at && new Date(vote.ends_at).getTime() <= Date.now())));
+  const isPastVote = (vote) => voteHasEnded(vote, now);
   const activeVotes = votes.filter((vote) => !isPastVote(vote));
   const pastVotes = votes.filter(isPastVote);
   const filteredActiveVotes = activeVotes.filter((vote) => matchesVoteClass(vote, classFilter));
@@ -512,7 +517,7 @@ export default function VotesPage() {
         <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="mb-2 text-3xl font-bold text-gray-900">{t("Votes")}</h1>
-            <a href="/" className="text-sm text-gray-600 hover:text-gray-900">{t("Back to home")}</a>
+            <a href="/" className="text-sm text-gray-600 hover:text-gray-900">{t("Back to home")}<NotificationDot section="blog" /></a>
           </div>
           {isAdmin && (
             <button

@@ -1,23 +1,7 @@
 import { randomUUID } from "node:crypto";
 import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
-
-const ALLOWED_CLASSES = new Set([
-  "S1",
-  "S2",
-  "G1",
-  "G2",
-  "G3",
-  "G4",
-  "Pre-IB 1",
-  "Pre-IB 2",
-  "IBDP 1",
-  "IBDP 2",
-  "IB 1",
-  "IB 2",
-]);
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { STUDENT_CLASS_NAMES } from "../../../../studentClasses.js";
 
 function parseEndAt(value) {
   if (value === undefined || value === null || value === "") {
@@ -153,10 +137,7 @@ export async function POST(request) {
       return Response.json({ error: "class_names must be an array" }, { status: 400 });
     }
 
-    const invalidClass = suppliedClasses.find(
-      (className) => typeof className !== "string" || !ALLOWED_CLASSES.has(className),
-    );
-    if (invalidClass !== undefined) {
+    if (suppliedClasses.some((className) => !STUDENT_CLASS_NAMES.includes(className))) {
       return Response.json(
         { error: "class_names contains an unsupported class" },
         { status: 400 },

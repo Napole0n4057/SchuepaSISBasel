@@ -3,6 +3,7 @@ import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import ForumComments from "@/components/ForumComments";
 import { messageKeyFromError, useLanguage } from "@/i18n";
+import { NotificationDot, useSectionNotifications } from "@/components/SectionNotifications";
 
 export default function ForumPage() {
   const { data: user, loading: userLoading } = useUser();
@@ -13,6 +14,11 @@ export default function ForumPage() {
   const [success, setSuccess] = useState(null);
   const [userSettings, setUserSettings] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const { markSeen } = useSectionNotifications();
+
+  useEffect(() => {
+    if (user && !loading && !error) markSeen("forum", posts);
+  }, [user?.id, loading, error, posts, markSeen]);
 
   // Create post state
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -52,6 +58,7 @@ export default function ForumPage() {
   const fetchPosts = async () => {
     try {
       const res = await fetch("/api/forum/posts/list");
+      if (!res.ok) throw new Error("Error loading posts");
       const data = await res.json();
       setPosts(data.posts || []);
       setLoading(false);
@@ -165,6 +172,7 @@ export default function ForumPage() {
             </h1>
             <a href="/" className="text-sm text-gray-600 hover:text-gray-900">
               {t("Back to home")}
+              <NotificationDot section="blog" />
             </a>
           </div>
 

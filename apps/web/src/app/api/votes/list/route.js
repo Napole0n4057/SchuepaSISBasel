@@ -1,5 +1,6 @@
 import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
+import { getVisibleVotes } from "../../utils/voteAccess.js";
 
 export async function GET(request) {
   try {
@@ -8,43 +9,8 @@ export async function GET(request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check user role
-    const userRole = await sql`
-      SELECT designation FROM user_roles WHERE user_id = ${session.user.id}
-    `;
-
-    const isAdmin = userRole.length > 0 && userRole[0].designation === "admin";
-    const isSpectator =
-      userRole.length > 0 && userRole[0].designation === "spectator";
-
-    // Keep existing visibility: admins and spectators see all polls; other users see public polls.
-    const votes = await sql`
-      SELECT
-        v.*,
-        u.email AS creator_email,
-        CASE
-          WHEN v.is_active IS NULL THEN 'past'
-          WHEN v.is_active = false THEN 'past'
-          WHEN v.is_active = true
-            AND v.ends_at IS NOT NULL
-            AND v.ends_at <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
-          THEN 'past'
-          WHEN v.is_active = true
-            AND (v.ends_at IS NULL OR v.ends_at > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
-          THEN 'active'
-        END AS status,
-        ARRAY(
-          SELECT vc.class_name
-          FROM vote_classes vc
-          WHERE vc.vote_id = v.id
-          ORDER BY vc.class_name
-        ) AS class_names
-      FROM votes v
-      LEFT JOIN auth_users u ON v.created_by = u.id
-      WHERE v.deleted_at IS NULL
-        AND (${isAdmin} OR ${isSpectator} OR v.admin_only = false)
-      ORDER BY v.created_at DESC
-    `;
+    // This endpoint also supplies vote details and results; filter before reading either.
+    const votes = await getVisibleVotes(session.user.id);
 
     // Get options and vote counts for each vote
     const votesWithOptions = await Promise.all(
@@ -80,7 +46,7 @@ export async function GET(request) {
       votes: votesWithOptions,
       active_votes: activeVotes,
       past_votes: pastVotes,
-    });
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     console.error("GET /api/votes/list error", err);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 const LANGUAGE_STORAGE_KEY = "schuepas.language";
 
 const messages = {
+  "New content": { de: "Neue Inhalte", en: "New content" },
   "Loading...": { de: "Lädt...", en: "Loading..." },
   "Home": { de: "Startseite", en: "Home" },
   "Back to home": { de: "← Zurück zur Startseite", en: "← Back to home" },

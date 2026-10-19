@@ -1,3 +1,11 @@
+export function voteHasEnded(vote, now = Date.now()) {
+  if (vote.status === "past" || vote.is_active !== true) return true;
+  if (!vote.ends_at) return false;
+  const raw = String(vote.ends_at);
+  const deadline = Date.parse(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw) ? raw : `${raw}Z`);
+  return Number.isFinite(deadline) && deadline <= now;
+}
+
 export function matchesVoteClass(vote, selectedClass) {
   if (!selectedClass) return true;
 

@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import useUser from "@/utils/useUser";
 import { useLanguage } from "@/i18n";
-
-const PROGRAMMES = ["Gym", "Int"];
-const YEARS = [1, 2, 3, 4, 5, 6];
+import { STUDENT_PROGRAMMES as PROGRAMMES, STUDENT_YEARS as YEARS } from "@/studentClasses";
 
 export default function StudentClassesPage() {
   const { data: user, loading: userLoading } = useUser();
