@@ -1,3 +1,4 @@
+import ModerationActions from "@/components/ModerationActions";
 import { useState, useEffect, useRef } from "react";
 import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -81,7 +82,9 @@ export default function HomePage() {
               className="mx-auto mb-8 h-32 w-auto"
             />
           </a>
-          <h1 className="mb-4 text-3xl font-bold text-gray-900">{t("Welcome")}</h1>
+          <h1 className="mb-4 text-3xl font-bold text-gray-900">
+            {t("Welcome")}
+          </h1>
           <a
             href="/account/signin"
             className="inline-block rounded-md bg-gray-900 px-6 py-3 text-base font-medium text-white hover:bg-gray-800"
@@ -159,9 +162,7 @@ export default function HomePage() {
               {t("Community Forum")}
               <NotificationDot section="forum" />
             </h3>
-            <p className="text-sm text-gray-600">
-              {t("Discuss and share")}
-            </p>
+            <p className="text-sm text-gray-600">{t("Discuss and share")}</p>
           </a>
 
           {isAdminOrSpectator && (
@@ -198,7 +199,7 @@ export default function HomePage() {
 
           {blogPosts.length > 0 ? (
             <div className="space-y-6">
-              {blogPosts.slice(0, 3).map((post) => (
+              {(isAdminOrSpectator ? blogPosts : blogPosts.slice(0, 3)).map((post) => (
                 <div
                   key={post.id}
                   className="border-b border-gray-200 pb-6 last:border-0 last:pb-0"
@@ -219,6 +220,22 @@ export default function HomePage() {
                     </span>
                   </div>
                   <p className="text-gray-700 line-clamp-3">{post.content}</p>
+                  {isAdminOrSpectator && (
+                    <ModerationActions
+                      resource="blog"
+                      item={post}
+                      t={t}
+                      onChanged={(item) =>
+                        setBlogPosts((posts) =>
+                          item
+                            ? posts.map((p) =>
+                                p.id === item.id ? { ...p, ...item } : p,
+                              )
+                            : posts.filter((p) => p.id !== post.id),
+                        )
+                      }
+                    />
+                  )}
                 </div>
               ))}
             </div>

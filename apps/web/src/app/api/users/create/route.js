@@ -1,7 +1,8 @@
+import { accountMutation } from "../../utils/permissions.js";
 import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
 import { hash } from "argon2";
-import { isValidStudentClass } from "../../../../studentClasses.js";
+import { isOptionalStudentClass } from "../../../../studentClasses.js";
 
 export async function POST(request) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if current user is admin
+    // Check account-management permission
     const currentUserRole = await sql`
       SELECT designation
       FROM user_roles
@@ -20,16 +21,16 @@ export async function POST(request) {
 
     if (
       currentUserRole.length === 0 ||
-      currentUserRole[0].designation !== "admin"
+      !["admin", "spectator"].includes(currentUserRole[0].designation)
     ) {
       return Response.json(
-        { error: "Forbidden - Admin access required" },
+        { error: "Forbidden - Admin or Spectator access required" },
         { status: 403 },
       );
     }
 
     const body = (await request.json()) || {};
-    const { email, password, programme, year } = body;
+    const { email, password, class_name = null, designation = "member" } = body;
     const providedName = typeof body.name === "string" ? body.name.trim() : "";
 
     if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
@@ -39,10 +40,25 @@ export async function POST(request) {
       );
     }
 
-    if (!isValidStudentClass(programme, year)) {
+    if (!isOptionalStudentClass(class_name) ||
+      body.programme != null ||
+      body.year != null
+    ) {
       return Response.json(
-        { error: "A valid student programme and year are required" },
+        {
+          error:
+            "A valid class name or null is required; legacy programme/year needs manual mapping",
+        },
         { status: 400 },
+      );
+    }
+
+    if (
+      !["admin", "member", "spectator"].includes(designation) ||
+      (designation === "admin" && currentUserRole[0].designation !== "admin")) {
+      return Response.json(
+        { error: "Forbidden role assignment" },
+        { status: 403 },
       );
     }
 
@@ -50,7 +66,7 @@ export async function POST(request) {
 
     // Check if user already exists
     const existingUser = await sql`
-      SELECT id FROM auth_users WHERE email = ${normalizedEmail}
+      SELECT id FROM auth_users WHERE LOWER(email) = ${normalizedEmail}
     `;
 
     if (existingUser.length > 0) {
@@ -65,10 +81,14 @@ export async function POST(request) {
         ? providedName
         : normalizedEmail.split("@")[0].replace(/[._-]+/g, " ").trim();
 
-    const newUser = await sql`
+    const newUser = await accountMutation(
+      (tx) => tx`
       WITH new_user AS (
         INSERT INTO auth_users (email, name, "emailVerified")
-        VALUES (${normalizedEmail}, ${resolvedName}, NOW())
+        SELECT ${normalizedEmail}, ${resolvedName}, NOW()
+        WHERE EXISTS (SELECT 1 FROM user_roles actor WHERE actor.user_id = ${session.user.id}
+          AND (actor.designation = 'admin' OR (actor.designation = 'spectator' AND ${designation} IN ('member', 'spectator'))))
+        AND NOT EXISTS (SELECT 1 FROM auth_users existing WHERE LOWER(existing.email) = ${normalizedEmail})
         RETURNING id, email
       ), new_account AS (
         INSERT INTO auth_accounts ("userId", type, provider, "providerAccountId", password)
@@ -77,17 +97,20 @@ export async function POST(request) {
         RETURNING id
       ), new_role AS (
         INSERT INTO user_roles (user_id, email, designation)
-        SELECT id, email, 'member'
+        SELECT id, email, ${designation}
         FROM new_user
         RETURNING id
       ), new_class AS (
-        INSERT INTO student_classes (user_id, programme, year)
-        SELECT id, ${programme}, ${year}
+        INSERT INTO student_classes (user_id, class_name)
+        SELECT id, ${class_name}
         FROM new_user
         RETURNING user_id
       )
       SELECT id, email FROM new_user
-    `;
+    `,
+    );
+    if (!newUser.length)
+      return Response.json({ error: "Forbidden" }, { status: 403 });
 
     const userId = newUser[0].id;
 

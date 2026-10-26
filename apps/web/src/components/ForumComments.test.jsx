@@ -234,4 +234,43 @@ describe("ForumComments", () => {
     expect(comments[0].author_name).toBe("Anonymous");
     expect(comments[1].author_name).toBe("Anonymous");
   });
+  it("shows spectator moderation without comment or reply composers", async () => {
+    comments = [
+      {
+        id: "root",
+        post_id: postId,
+        parent_comment_id: null,
+        content: "Root",
+        author_name: "Student",
+      },
+      {
+        id: "reply",
+        post_id: postId,
+        parent_comment_id: "root",
+        content: "Nested",
+        author_name: "Student",
+      },
+    ];
+    installCommentApi();
+    const container = renderComments({
+      isAdmin: true,
+      canParticipate: false,
+      initialCount: 2,
+    });
+    await click(container.querySelector('button[aria-label="Comments: 2"]'));
+    await waitForElement(() => commentArticle(container, "Nested"));
+    expect(container.querySelector("textarea")).toBeNull();
+    expect(buttonByText(container, "Reply")).toBeUndefined();
+    expect(
+      [...container.querySelectorAll("button")].filter(
+        (b) => b.textContent === "Remove comment",
+      ),
+    ).toHaveLength(2);
+    expect(
+      [...container.querySelectorAll("button")].filter(
+        (b) => b.textContent === "Edit",
+      ),
+    ).toHaveLength(2);
+    expect(submittedBodies).toHaveLength(0);
+  });
 });

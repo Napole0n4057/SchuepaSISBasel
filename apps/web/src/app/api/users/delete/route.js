@@ -1,89 +1,51 @@
-import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
+import { getRole } from "../../utils/permissions.js";
+import { mutateAccount } from "../../utils/accountManagement.js";
+import { isValidUserId } from "../../../../studentClasses.js";
 
 export async function POST(request) {
   try {
     const session = await auth();
-    if (!session || !session.user?.id) {
+    if (!session?.user?.id)
       return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const role = await getRole(session.user.id);
 
-    const currentUserRole = await sql`
-      SELECT designation
-      FROM user_roles
-      WHERE user_id = ${session.user.id}
-      LIMIT 1
-    `;
-
-    if (
-      currentUserRole.length === 0 ||
-      currentUserRole[0].designation !== "admin"
-    ) {
+    if (!["admin", "spectator"].includes(role))
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    let body;
+    try {
+      body = await request.json();
+    } catch {
       return Response.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 },
+        { error: "Invalid JSON" },
+        { status: 400 },
       );
     }
+    if (!body || !isValidUserId(body.userId))
+      return Response.json({ error: "Valid userId required" }, { status: 400 });
 
-    const body = await request.json();
-    const { userId, confirm } = body;
-
-    if (!userId || confirm !== true) {
+    if (body.confirm !== true)
       return Response.json(
         { error: "Confirmation required" },
         { status: 400 },
       );
-    }
+    const result = await mutateAccount(
+      session.user.id,
+      body.userId,
+      "delete",
+      null,
+      );
 
-    const targetRole = await sql`
-      SELECT designation
-      FROM user_roles
-      WHERE user_id = ${userId}
-      LIMIT 1
-    `;
-
-    if (targetRole.length === 0) {
-      return Response.json({ error: "User not found" }, { status: 404 });
-    }
-
-    if (targetRole[0].designation === "admin") {
-      const adminCount = await sql`
-        SELECT COUNT(*)::int AS admin_count
-        FROM user_roles
-        WHERE designation = 'admin'
-      `;
-
-      if (Number(adminCount[0]?.admin_count || 0) <= 1) {
-        return Response.json(
-          { error: "Cannot delete the last admin account" },
+    if (!result.length)
+      return Response.json({ error: "Account unavailable, protected, or last administrator" },
           { status: 409 },
-        );
-      }
-    }
+      );
 
-    const userExists = await sql`
-      SELECT id
-      FROM auth_users
-      WHERE id = ${userId}
-      LIMIT 1
-    `;
-
-    if (userExists.length === 0) {
-      return Response.json({ error: "User not found" }, { status: 404 });
-    }
-
-    await sql.transaction((tx) => [
-      tx`DELETE FROM auth_sessions WHERE "userId" = ${userId}`,
-      tx`DELETE FROM auth_accounts WHERE "userId" = ${userId}`,
-      tx`DELETE FROM user_settings WHERE user_id = ${userId}`,
-      tx`DELETE FROM student_classes WHERE user_id = ${userId}`,
-      tx`DELETE FROM user_roles WHERE user_id = ${userId}`,
-      tx`DELETE FROM auth_users WHERE id = ${userId} RETURNING id`,
-    ]);
-
-    return Response.json({ success: true });
+    return Response.json({ success: true, user: result[0] });
   } catch (err) {
-    console.error("POST /api/users/delete error", err);
+    if (err?.code === "23505")
+      return Response.json({ error: "Email already in use" }, { status: 409 });
+    console.error("Account delete failed", err);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

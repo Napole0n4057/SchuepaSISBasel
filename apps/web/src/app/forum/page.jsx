@@ -1,3 +1,5 @@
+import ModerationActions from "@/components/ModerationActions";
+import { canModerate, canParticipate } from "@/permissions";
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -148,9 +150,7 @@ export default function ForumPage() {
     return (
       <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center">
-          <p className="mb-4 text-lg text-gray-600">
-            {t("Please sign in")}
-          </p>
+          <p className="mb-4 text-lg text-gray-600">{t("Please sign in")}</p>
           <a
             href="/account/signin"
             className="text-gray-900 hover:text-gray-700 font-medium"
@@ -176,14 +176,16 @@ export default function ForumPage() {
             </a>
           </div>
 
-          <button
+          {canParticipate(userRole?.designation) && (
+            <button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
           >
-            {showCreateForm
+              {showCreateForm
               ? t("Cancel")
               : t("Create a post")}
-          </button>
+            </button>
+          )}
         </div>
 
         {error && (
@@ -199,7 +201,7 @@ export default function ForumPage() {
         )}
 
         {/* Create Post Form */}
-        {showCreateForm && (
+        {showCreateForm && canParticipate(userRole?.designation) && (
           <div className="mb-8 rounded-lg bg-white p-6 shadow-md border border-gray-200">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               {t("New post")}
@@ -285,7 +287,7 @@ export default function ForumPage() {
                 </p>
               </div>
 
-              {userRole?.designation === "admin" && (
+              {canModerate(userRole?.designation) && (
                 <div className="flex justify-end border-t border-gray-200 pt-3">
                   <button
                     onClick={() => handleDeletePost(post.id)}
@@ -295,14 +297,30 @@ export default function ForumPage() {
                   </button>
                 </div>
               )}
+              {canModerate(userRole?.designation) && (
+                <ModerationActions
+                  resource="forum/posts"
+                  item={post}
+                  t={t}
+                  allowDelete={false}
+                  onChanged={(item) =>
+                    setPosts((posts) =>
+                      posts.map((p) =>
+                        p.id === item.id ? { ...p, ...item } : p,
+                      ),
+                    )
+                  }
+                />
+              )}
               <ForumComments
                 postId={post.id}
                 initialCount={post.comment_count}
                 user={user}
                 profilePicture={userSettings?.profile_picture}
-                isAdmin={userRole?.designation === "admin"}
+                isAdmin={canModerate(userRole?.designation)}
+                canParticipate={canParticipate(userRole?.designation)}
                 language={language}
-                showDivider={userRole?.designation !== "admin"}
+                showDivider={!canModerate(userRole?.designation)}
                 onCountChange={(count) =>
                   setPosts((currentPosts) =>
                     currentPosts.map((currentPost) =>

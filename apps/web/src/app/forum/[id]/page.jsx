@@ -1,3 +1,5 @@
+import ModerationActions from "@/components/ModerationActions";
+import { canModerate, canParticipate } from "@/permissions";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import useUser from "@/utils/useUser";
@@ -97,9 +99,7 @@ export default function ForumPostPage() {
     return (
       <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center">
-          <p className="mb-4 text-lg text-gray-600">
-            {t("Please sign in")}
-          </p>
+          <p className="mb-4 text-lg text-gray-600">{t("Please sign in")}</p>
           <a
             href="/account/signin"
             className="text-gray-900 hover:text-gray-700 font-medium"
@@ -123,7 +123,7 @@ export default function ForumPostPage() {
               {t("Back to forum")}
             </a>
           </div>
-          {userRole?.designation === "admin" && (
+          {canModerate(userRole?.designation) && (
             <button
               onClick={handleDeletePost}
               className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
@@ -150,17 +150,31 @@ export default function ForumPostPage() {
                 name={post.author_name === "Anonymous" ? t("Anonymous") : post.author_name}
                 className="h-8 w-8"
               />
-              <span>{post.author_name === "Anonymous" ? t("Anonymous") : post.author_name}</span>
+              <span>
+                {post.author_name === "Anonymous" ? t("Anonymous") : post.author_name}
+              </span>
               <span>•</span>
-              <span>{new Date(post.created_at).toLocaleDateString(language === "de" ? "de-CH" : "en-GB")}</span>
+              <span>
+                {new Date(post.created_at).toLocaleDateString(language === "de" ? "de-CH" : "en-GB")}
+              </span>
             </div>
             <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
+            {canModerate(userRole?.designation) && (
+              <ModerationActions
+                resource="forum/posts"
+                item={post}
+                t={t}
+                allowDelete={false}
+                onChanged={(item) => setPost((post) => ({ ...post, ...item }))}
+              />
+            )}
             <ForumComments
               postId={id}
               initialCount={post.comment_count}
               user={user}
               profilePicture={profilePicture}
-              isAdmin={userRole?.designation === "admin"}
+              isAdmin={canModerate(userRole?.designation)}
+              canParticipate={canParticipate(userRole?.designation)}
               language={language}
               onCountChange={(count) =>
                 setPost((currentPost) =>

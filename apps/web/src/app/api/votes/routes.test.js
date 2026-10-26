@@ -5,7 +5,7 @@ const fixtures = vi.hoisted(() => ({ auth: vi.fn(), sql: vi.fn(), visible: vi.fn
 vi.mock("../../../auth.js", () => ({ auth: fixtures.auth }));
 vi.mock("../utils/sql.js", () => ({ default: fixtures.sql }));
 vi.mock("../utils/voteAccess.js", async (original) => ({
-  ...await original(), getVisibleVotes: fixtures.visible,
+  ...(await original()), getVisibleVotes: fixtures.visible,
 }));
 
 import { POST as create } from "./create/route.js";
@@ -15,7 +15,7 @@ import { GET as list } from "./list/route.js";
 const userId = "11111111-1111-4111-8111-111111111111";
 const voteId = "22222222-2222-4222-8222-222222222222";
 const optionId = "33333333-3333-4333-8333-333333333333";
-const activeVote = { id: voteId, status: "active", is_active: true, admin_only: false, class_names: ["Gym 2"] };
+const activeVote = { id: voteId, status: "active", is_active: true, admin_only: false, class_names: ["G3"] };
 
 function post(body) {
   return new Request("http://localhost/api/votes", {
@@ -70,7 +70,11 @@ describe("vote API permissions and history", () => {
     expect(classes[0].values).toContain(className);
   });
 
-  it.each(["G4", "S1", "IB 1", "Gym 7", "Int 0", null, 3])("rejects unsupported class %s on new votes", async (className) => {
+  it.each([
+    "Gym 1",
+    "Gym 6",
+    "Int 1",
+    "Int 6", "IB 1", "Gym 7", "Int 0", null, 3])("rejects unsupported class %s on new votes", async (className) => {
     expect((await create(post({ title: "Vote", options: ["Yes", "No"], class_names: [className] }))).status).toBe(400);
     expect(fixtures.sql.transaction).not.toHaveBeenCalled();
   });
@@ -89,12 +93,28 @@ describe("vote API permissions and history", () => {
     expect(fixtures.sql).not.toHaveBeenCalled();
   });
 
+  it("applies visibility to direct detail lookups and returns no results when forbidden", async () => {
+    fixtures.visible.mockResolvedValue([]);
+    const response = await list(
+      new Request(`http://localhost/api/votes/list?vote_id=${voteId}`),
+    );
+    expect(response.status).toBe(404);
+    expect(fixtures.visible).toHaveBeenCalledWith(userId, voteId);
+    expect(fixtures.sql).not.toHaveBeenCalled();
+  });
+
   it("returns completed class votes with results in past votes", async () => {
     fixtures.visible.mockResolvedValue([{ ...activeVote, status: "past" }]);
     const response = await list();
     const data = await response.json();
     expect(data.active_votes).toEqual([]);
     expect(data.past_votes[0].options[0].vote_count).toBe("4");
+    expect(data.past_votes[0].user_voted_option_id).toBeNull();
+    expect(
+      fixtures.sql.mock.calls.some(([q]) =>
+        q.join(" ").includes("SELECT option_id"),
+      ),
+    ).toBe(false);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
 

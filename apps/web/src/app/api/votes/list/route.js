@@ -1,3 +1,4 @@
+import { isValidUserId } from "../../../../studentClasses.js";
 import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
 import { getVisibleVotes } from "../../utils/voteAccess.js";
@@ -10,7 +11,16 @@ export async function GET(request) {
     }
 
     // This endpoint also supplies vote details and results; filter before reading either.
-    const votes = await getVisibleVotes(session.user.id);
+    const voteId = request
+      ? new URL(request.url).searchParams.get("vote_id")
+      : null;
+    if (voteId && !isValidUserId(voteId))
+      return Response.json({ error: "Invalid vote_id" }, { status: 400 });
+    const votes = voteId
+      ? await getVisibleVotes(session.user.id, voteId)
+      : await getVisibleVotes(session.user.id);
+    if (voteId && !votes.length)
+      return Response.json({ error: "Vote not found" }, { status: 404 });
 
     // Get options and vote counts for each vote
     const votesWithOptions = await Promise.all(
@@ -25,10 +35,13 @@ export async function GET(request) {
         `;
 
         // Check if current user has voted
-        const userVote = await sql`
+        const userVote =
+          vote.status === "active"
+            ? await sql`
           SELECT option_id FROM user_votes 
           WHERE vote_id = ${vote.id} AND user_id = ${session.user.id}
-        `;
+        `
+            : [];
 
         return {
           ...vote,

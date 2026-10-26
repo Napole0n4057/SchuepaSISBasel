@@ -18,6 +18,9 @@ vi.mock("../../../../../app/api/utils/sql.js", () => ({
   default: vi.fn(async (strings, ...values) => {
     const query = strings.join(" ").replace(/\s+/g, " ");
 
+    if (query.includes("SELECT designation"))
+      return [{ designation: "member" }];
+
     if (query.includes("FROM forum_posts")) {
       return mockDb.posts.has(values[0]) ? [{ id: values[0] }] : [];
     }

@@ -3,6 +3,21 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 const LANGUAGE_STORAGE_KEY = "schuepas.language";
 
 const messages = {
+  "No class / Keine Klasse": { de: "Keine Klasse", en: "No class" },
+  Class: { de: "Klasse", en: "Class" },
+  Content: { de: "Inhalt", en: "Content" },
+  Edit: { de: "Bearbeiten", en: "Edit" },
+  "Create account": { de: "Konto erstellen", en: "Create account" },
+  "Account created": { de: "Konto erstellt", en: "Account created" },
+  "Edit account": { de: "Konto bearbeiten", en: "Edit account" },
+  "Legacy assignment needs mapping": {
+    de: "Alte Zuordnung muss geprüft werden",
+    en: "Legacy assignment needs mapping",
+  },
+  "Spectators can manage member and spectator accounts and moderate content.": {
+    de: "Zuschauende können Mitglieds- und Zuschauerkonten verwalten und Inhalte moderieren.",
+    en: "Spectators can manage member and spectator accounts and moderate content.",
+  },
   "New content": { de: "Neue Inhalte", en: "New content" },
   "Loading...": { de: "Lädt...", en: "Loading..." },
   "Home": { de: "Startseite", en: "Home" },
@@ -360,8 +375,8 @@ const messages = {
   "Manage student classes": { de: "Klassen der Lernenden verwalten", en: "Manage student classes" },
   "Student class management": { de: "Klassenverwaltung", en: "Student class management" },
   "Class rollover explanation": {
-    de: "Die Jahrgänge werden am ersten Schultag nach den Basler Sommerferien automatisch erhöht. Jahrgang 6 bleibt Jahrgang 6 und wird zur Abschlussprüfung markiert.",
-    en: "Years advance automatically on the first school day after Basel summer holidays. Year 6 remains year 6 and is flagged for graduation review.",
+    de: "Die Klassen wechseln innerhalb ihres Bildungsgangs. G4 und IBDP 3 bleiben zur Prüfung markiert. Nicht zugewiesene und alte Zuordnungen werden übersprungen.",
+    en: "Classes advance within their own track. G4 and IBDP 3 remain flagged for review. Unassigned and legacy assignments are skipped.",
   },
   "Students": { de: "Lernende", en: "Students" },
   "Programme": { de: "Bildungsgang", en: "Programme" },
@@ -371,7 +386,7 @@ const messages = {
   "Programme for {name}": { de: "Bildungsgang für {name}", en: "Programme for {name}" },
   "Year for {name}": { de: "Jahrgang für {name}", en: "Year for {name}" },
   "Search students": { de: "Lernende suchen", en: "Search students" },
-  "Graduation review": { de: "Abschlussprüfung", en: "Graduation review" },
+  "Graduation review": { de: "Abschluss prüfen", en: "Graduation review" },
   "Class not assigned": { de: "Klasse fehlt", en: "Class not assigned" },
   "Save class": { de: "Klasse speichern", en: "Save class" },
   "Class saved": { de: "Klasse gespeichert", en: "Class saved" },
@@ -381,8 +396,8 @@ const messages = {
   "Back to administration": { de: "Zurück zur Verwaltung", en: "Back to administration" },
   "Choose .txt file": { de: ".txt-Datei auswählen", en: "Choose .txt file" },
   "Bulk import examples": {
-    de: "Max Muster, max@sisbasel.ch, Password123!, Gym, 1\nLia Beispiel, lia@sisbasel.ch, Password123!, Int, 2",
-    en: "Max Example, max@sisbasel.ch, Password123!, Gym, 1\nLia Sample, lia@sisbasel.ch, Password123!, Int, 2",
+    de: "Max Muster, max@sisbasel.ch, Password123!, G3\nLia Beispiel, lia@sisbasel.ch, Password123!, IBDP 2",
+    en: "Max Example, max@sisbasel.ch, Password123!, G3\nLia Sample, lia@sisbasel.ch, Password123!, IBDP 2",
   },
   "Summary": { de: "Zusammenfassung", en: "Summary" },
   "Total: {count}": { de: "Gesamt: {count}", en: "Total: {count}" },

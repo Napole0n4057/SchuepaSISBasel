@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   baselCalendarDate,
   dueStudentClassRollovers,
-  nextStudentYear,
   processDueStudentClassRollovers,
   STUDENT_CLASS_ROLLOVERS,
 } from "./studentClassRollovers.js";
@@ -28,41 +27,35 @@ describe("Basel school-year rollover dates", () => {
   });
 });
 
-describe("class year progression", () => {
-  it("advances students and never creates year 7", () => {
-    expect([1, 2, 3, 4, 5, 6].map(nextStudentYear)).toEqual([2, 3, 4, 5, 6, 6]);
-  });
+describe("class progression", () => {
+  it("passes both exact progression sequences to SQL and skips legacy/unassigned accounts", async () => {
+    const sql = vi.fn()
+      .mockResolvedValueOnce([{ processed: true, promoted_count: 10, review_count: 2 }])
+      .mockResolvedValueOnce([{ processed: false }]);
 
-  it("claims each academic year once when the rollover runs repeatedly", async () => {
-    const markers = new Set();
-    const years = [1, 5, 6];
-    const statements = [];
-    const sql = vi.fn(async (strings, ...values) => {
-      const statement = strings.join("?");
-      statements.push(statement);
-      const academicYear = values[0];
-      if (markers.has(academicYear)) return [{ processed: false, promoted_count: 0 }];
-      markers.add(academicYear);
-      let promotedCount = 0;
-      for (let index = 0; index < years.length; index += 1) {
-        if (years[index] < 6) {
-          years[index] += 1;
-          promotedCount += 1;
-        }
-      }
-      return [{ processed: true, promoted_count: promotedCount }];
-    });
-
-    const first = await processDueStudentClassRollovers(sql, "2027-08-16");
-    const repeated = await processDueStudentClassRollovers(sql, "2027-08-16");
-    expect(first).toHaveLength(1);
-    expect(repeated).toEqual([]);
-    expect(years).toEqual([2, 6, 6]);
-    expect(markers).toEqual(new Set(["2027-2028"]));
-    expect(statements[0]).toContain("ON CONFLICT (academic_year) DO NOTHING");
-    expect(statements[0]).toContain("EXISTS (SELECT 1 FROM rollover_claim)");
-    expect(statements[0]).toContain("SET year = year + 1");
-    expect(statements[0]).toContain("WHERE year < 6");
-    expect(statements[0]).toContain("user_roles.designation = 'member'");
+    const result = await processDueStudentClassRollovers(sql, "2027-08-16");
+    await processDueStudentClassRollovers(sql, "2027-08-16");
+    expect(result[0]).toMatchObject({ promotedCount: 10, reviewCount: 2 });
+    const [strings, ...values] = sql.mock.calls[0];
+    const mapping = JSON.parse(values[2]);
+    expect(mapping).toEqual([
+      { class_name: "S1", next_class: "S2" },
+      { class_name: "S2", next_class: "G1" },
+      { class_name: "G1", next_class: "G2" },
+      { class_name: "G2", next_class: "G3" },
+      { class_name: "G3", next_class: "G4" },
+      { class_name: "G4", next_class: null },
+      { class_name: "Pre-IB 1", next_class: "Pre-IB 2" },
+      { class_name: "Pre-IB 2", next_class: "Pre-IB 3" },
+      { class_name: "Pre-IB 3", next_class: "IBDP 1" },
+      { class_name: "IBDP 1", next_class: "IBDP 2" },
+      { class_name: "IBDP 2", next_class: "IBDP 3" },
+      { class_name: "IBDP 3", next_class: null },
+    ]);
+    const query = strings.join("?");
+    expect(query).toContain("ON CONFLICT (academic_year) DO NOTHING");
+    expect(query).toContain("sc.class_name = p.class_name");
+    expect(query).toContain("COALESCE(p.next_class, sc.class_name)");
+    expect(query).toContain("review_required = (p.next_class IS NULL)");
   });
 });

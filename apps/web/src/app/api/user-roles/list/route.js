@@ -31,6 +31,7 @@ export async function GET() {
       SELECT ur.user_id, ur.email, ur.designation, ur.created_at, ur.updated_at, au.name
       FROM user_roles ur
       LEFT JOIN auth_users au ON au.id = ur.user_id
+      WHERE ur.designation <> 'admin' OR ${currentUserRole[0].designation} = 'admin'
       ORDER BY ur.created_at DESC
     `;
 

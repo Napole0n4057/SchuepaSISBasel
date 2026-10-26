@@ -1,3 +1,4 @@
+import { STUDENT_CLASS_NAMES, nextStudentClass } from "./studentClasses.js";
 export const STUDENT_CLASS_ROLLOVERS = Object.freeze([
   { academicYear: "2027-2028", effectiveOn: "2027-08-16" },
   { academicYear: "2028-2029", effectiveOn: "2028-08-14" },
@@ -22,43 +23,44 @@ export function dueStudentClassRollovers(today, schedule = STUDENT_CLASS_ROLLOVE
   return schedule.filter(({ effectiveOn }) => effectiveOn <= today);
 }
 
-export function nextStudentYear(year) {
-  return Math.min(year + 1, 6);
-}
-
 export async function processDueStudentClassRollovers(sql, today) {
   const processed = [];
+  const progression = JSON.stringify(
+    STUDENT_CLASS_NAMES.map((class_name) => ({
+      class_name,
+      next_class: nextStudentClass(class_name),
+    })),
+  );
   for (const rollover of dueStudentClassRollovers(today)) {
     const result = await sql`
       WITH rollover_claim AS (
         INSERT INTO student_class_rollovers (academic_year, effective_on)
         VALUES (${rollover.academicYear}, ${rollover.effectiveOn}::date)
-        ON CONFLICT (academic_year) DO NOTHING
-        RETURNING academic_year
+        ON CONFLICT (academic_year) DO NOTHING RETURNING academic_year
+      ), progression AS (
+        SELECT * FROM jsonb_to_recordset(${progression}::jsonb) AS p(class_name text, next_class text)
       ), promoted AS (
-        UPDATE student_classes
-        SET year = year + 1, updated_at = NOW()
-        WHERE year < 6
+        UPDATE student_classes sc
+        SET class_name = COALESCE(p.next_class, sc.class_name),
+            review_required = (p.next_class IS NULL), updated_at = NOW()
+        FROM progression p
+        WHERE sc.class_name = p.class_name
           AND EXISTS (SELECT 1 FROM rollover_claim)
-          AND EXISTS (
-            SELECT 1
-            FROM user_roles
-            WHERE user_roles.user_id = student_classes.user_id
-              AND user_roles.designation = 'member'
-          )
-        RETURNING user_id
+          AND EXISTS (SELECT 1 FROM user_roles WHERE user_roles.user_id = sc.user_id AND user_roles.designation = 'member')
+        RETURNING p.next_class
       )
       SELECT EXISTS (SELECT 1 FROM rollover_claim) AS processed,
-             COUNT(*)::integer AS promoted_count
+        COUNT(*) FILTER (WHERE next_class IS NOT NULL)::integer AS promoted_count,
+        COUNT(*) FILTER (WHERE next_class IS NULL)::integer AS review_count
       FROM promoted
     `;
 
-    if (result[0]?.processed) {
+    if (result[0]?.processed)
       processed.push({
         ...rollover,
         promotedCount: Number(result[0].promoted_count || 0),
+        reviewCount: Number(result[0].review_count || 0),
       });
-    }
   }
   return processed;
 }

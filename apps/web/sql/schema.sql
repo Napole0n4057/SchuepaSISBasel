@@ -83,8 +83,11 @@ CREATE TABLE IF NOT EXISTS login_rate_limit_buckets (
 
 CREATE TABLE IF NOT EXISTS student_classes (
   user_id uuid PRIMARY KEY REFERENCES auth_users(id) ON DELETE CASCADE,
-  programme text NOT NULL CHECK (programme IN ('Gym', 'Int')),
-  year smallint NOT NULL CHECK (year BETWEEN 1 AND 6),
+  programme text CHECK (programme IN ('Gym', 'Int')),
+  year smallint CHECK (year BETWEEN 1 AND 6),
+  class_name text CONSTRAINT student_classes_canonical_name_check CHECK (class_name IS NULL OR class_name IN ('S1', 'S2', 'G1', 'G2', 'G3', 'G4', 'Pre-IB 1', 'Pre-IB 2', 'Pre-IB 3', 'IBDP 1', 'IBDP 2', 'IBDP 3')),
+  review_required boolean NOT NULL DEFAULT false,
+  CONSTRAINT student_classes_assignment_shape_check CHECK ((programme IS NULL AND year IS NULL) OR (programme IS NOT NULL AND year IS NOT NULL AND class_name IS NULL)),
   updated_at timestamptz NOT NULL DEFAULT NOW()
 );
 
@@ -145,9 +148,9 @@ CREATE TABLE IF NOT EXISTS vote_classes (
   class_name text NOT NULL CHECK (class_name IN (
     'Gym 1', 'Gym 2', 'Gym 3', 'Gym 4', 'Gym 5', 'Gym 6',
     'Int 1', 'Int 2', 'Int 3', 'Int 4', 'Int 5', 'Int 6',
-    -- Retain legacy associations; new votes only accept the canonical labels above.
+    -- Retain legacy associations; the API accepts only the 12 canonical names.
     'S1', 'S2', 'G1', 'G2', 'G3', 'G4',
-    'Pre-IB 1', 'Pre-IB 2', 'IBDP 1', 'IBDP 2', 'IB 1', 'IB 2'
+    'Pre-IB 1', 'Pre-IB 2', 'Pre-IB 3', 'IBDP 1', 'IBDP 2', 'IBDP 3', 'IB 1', 'IB 2'
   )),
   PRIMARY KEY (vote_id, class_name)
 );

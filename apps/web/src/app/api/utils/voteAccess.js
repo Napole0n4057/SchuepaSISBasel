@@ -5,7 +5,7 @@ import sql from "./sql.js";
 export const VOTE_VIEWER_SQL = `WITH viewer AS (
   SELECT
     (SELECT designation FROM user_roles WHERE user_id = $1 LIMIT 1) AS designation,
-    (SELECT programme || ' ' || year::text FROM student_classes WHERE user_id = $1) AS class_name
+    (SELECT class_name FROM student_classes WHERE user_id = $1) AS class_name
 )`;
 
 export const ACTIVE_VOTE_SQL = `(v.is_active IS TRUE AND
@@ -27,8 +27,7 @@ export const VISIBLE_VOTES_SQL = `${VOTE_VIEWER_SQL}
     LEFT JOIN auth_users u ON v.created_by = u.id
     WHERE v.deleted_at IS NULL
       AND ($2::uuid IS NULL OR v.id = $2::uuid)
-      AND ${VOTE_ROLE_ACCESS_SQL}
-      AND (NOT ${ACTIVE_VOTE_SQL} OR ${VOTE_CLASS_ACCESS_SQL})
+      AND (NOT ${ACTIVE_VOTE_SQL} OR (${VOTE_ROLE_ACCESS_SQL} AND ${VOTE_CLASS_ACCESS_SQL}))
     ORDER BY v.created_at DESC
   `;
 
@@ -40,15 +39,17 @@ export const CAST_VOTE_SQL = `${VOTE_VIEWER_SQL}
   JOIN vote_options vo ON vo.vote_id = v.id AND vo.id = $3::uuid
   WHERE v.id = $2::uuid AND v.deleted_at IS NULL
     AND ${ACTIVE_VOTE_SQL}
-    AND viewer.designation IS DISTINCT FROM 'spectator'
+    AND viewer.designation IN ('admin', 'member')
     AND ${VOTE_ROLE_ACCESS_SQL}
     AND ${VOTE_CLASS_ACCESS_SQL}
   ON CONFLICT (vote_id, user_id)
   DO UPDATE SET option_id = EXCLUDED.option_id,
                 voted_at = clock_timestamp() AT TIME ZONE 'UTC'
   WHERE EXISTS (
-    SELECT 1 FROM votes v WHERE v.id = $2::uuid
+    SELECT 1 FROM votes v CROSS JOIN viewer WHERE v.id = $2::uuid
       AND v.deleted_at IS NULL AND ${ACTIVE_VOTE_SQL}
+      AND viewer.designation IN ('admin', 'member')
+      AND ${VOTE_ROLE_ACCESS_SQL} AND ${VOTE_CLASS_ACCESS_SQL}
   )
   RETURNING *
 `;

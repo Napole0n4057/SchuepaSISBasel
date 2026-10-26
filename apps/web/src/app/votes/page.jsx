@@ -1,3 +1,4 @@
+import { canParticipate } from "@/permissions";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Trash2, Trophy } from "lucide-react";
 import {
@@ -304,6 +305,7 @@ export default function VotesPage() {
 
   const isAdmin = userRole?.designation === "admin";
   const isSpectator = userRole?.designation === "spectator";
+  const canCastVote = canParticipate(userRole?.designation);
   const isPastVote = (vote) => voteHasEnded(vote, now);
   const activeVotes = votes.filter((vote) => !isPastVote(vote));
   const pastVotes = votes.filter(isPastVote);
@@ -380,13 +382,13 @@ export default function VotesPage() {
               <div key={option.id}>
                 <button
                   type="button"
-                  onClick={() => !isSpectator && !isPastVote(vote) && handleCastVote(vote.id, option.id)}
-                  disabled={isSpectator || isPastVote(vote)}
+                  onClick={() => canCastVote && !isPastVote(vote) && handleCastVote(vote.id, option.id)}
+                  disabled={!canCastVote || isPastVote(vote)}
                   className={`w-full rounded-md border-2 px-4 py-3 text-left transition-colors ${
                     isSelected
                       ? "border-[#093388] bg-blue-50"
                       : "border-gray-200 hover:border-gray-300"
-                  } ${isSpectator || isPastVote(vote) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                  } ${!canCastVote || isPastVote(vote) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                 >
                   <div className="mb-1 flex items-center justify-between gap-3">
                     <span className="font-semibold text-gray-900">

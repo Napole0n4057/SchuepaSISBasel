@@ -1,3 +1,4 @@
+import ModerationActions from "./ModerationActions";
 import { useState } from "react";
 import ProfileAvatar from "@/components/ProfileAvatar";
 
@@ -11,6 +12,8 @@ export default function ForumComment({
   comment,
   depth = 0,
   isAdmin = false,
+  canParticipate = true,
+  onEdit,
   language,
   onReply,
   onDelete,
@@ -71,14 +74,16 @@ export default function ForumComment({
             {comment.content}
           </p>
           <div className="mt-1.5 flex items-center gap-4">
-            <button
+            {canParticipate && (
+              <button
               type="button"
               onClick={() => setReplyOpen((open) => !open)}
               aria-expanded={replyOpen}
               className="border border-transparent text-xs font-semibold text-[#093388] hover:text-[#009EE0]"
             >
-              {t("Reply")}
-            </button>
+                {t("Reply")}
+              </button>
+            )}
             {isAdmin && (
               <button
                 type="button"
@@ -90,7 +95,16 @@ export default function ForumComment({
             )}
           </div>
 
-          {replyOpen && (
+          {isAdmin && (
+            <ModerationActions
+              resource="forum/comments"
+              item={comment}
+              t={t}
+              allowDelete={false}
+              onChanged={onEdit}
+            />
+          )}
+          {replyOpen && canParticipate && (
             <form onSubmit={handleReply} className="mt-3 space-y-2">
               <p className="text-xs text-slate-500">
                 {t("Replying to {name}", { name: authorName })}
@@ -152,6 +166,8 @@ export default function ForumComment({
                 comment={reply}
                 depth={depth + 1}
                 isAdmin={isAdmin}
+                canParticipate={canParticipate}
+                onEdit={onEdit}
                 language={language}
                 onReply={onReply}
                 onDelete={onDelete}

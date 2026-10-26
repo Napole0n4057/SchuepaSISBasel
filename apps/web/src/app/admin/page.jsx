@@ -1,3 +1,4 @@
+import { STUDENT_CLASS_NAMES } from "@/studentClasses";
 import { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
 import { messageKeyFromError, useLanguage } from "@/i18n";
@@ -15,6 +16,14 @@ export default function AdminPage() {
   const [bulkImportText, setBulkImportText] = useState("");
   const [bulkResults, setBulkResults] = useState(null);
   const [importFileName, setImportFileName] = useState("");
+
+  const [newAccount, setNewAccount] = useState({
+    name: "",
+    email: "",
+    password: "",
+    class_name: "",
+    designation: "member",
+  });
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,6 +74,51 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+
+  async function saveAccount(event) {
+    event.preventDefault();
+    try {
+      const response = await fetch("/api/users/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newAccount,
+          class_name: newAccount.class_name || null,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setNewAccount({
+        name: "",
+        email: "",
+        password: "",
+        class_name: "",
+        designation: "member",
+      });
+      setSuccess("Account created");
+      fetchData();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+  async function editAccount(account) {
+    const name = window.prompt(t("Name"), account.name || "");
+    if (name === null) return;
+    const email = window.prompt(t("Email"), account.email || "");
+    if (email === null) return;
+    try {
+      const response = await fetch("/api/users/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: account.user_id, name, email }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      fetchData();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   const handleRoleChange = async (userId, newDesignation) => {
     try {
@@ -224,9 +278,7 @@ export default function AdminPage() {
     return (
       <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="text-center">
-          <p className="mb-4 text-lg text-gray-600">
-            {t("Please sign in")}
-          </p>
+          <p className="mb-4 text-lg text-gray-600">{t("Please sign in")}</p>
           <a
             href="/account/signin"
             className="text-gray-900 hover:text-gray-700 font-medium"
@@ -248,7 +300,7 @@ export default function AdminPage() {
       <div className="app-page flex min-h-screen items-center justify-center bg-gray-50 p-4 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-lg border border-gray-200">
           <div className="mb-8 flex justify-center">
-              <a href="/" aria-label={t("Home")}>
+            <a href="/" aria-label={t("Home")}>
               <img
                 src="/sis-student-parliament-logo.png"
                 alt={t("SIS Basel logo")}
@@ -300,8 +352,8 @@ export default function AdminPage() {
                 {t("Administration")}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {isSpectator ? t("Spectator") : t("Administrator")}{" "}
-                - {user.email}
+                {isSpectator ? t("Spectator") : t("Administrator")} -{" "}
+                {user.email}
               </p>
             </div>
           </div>
@@ -335,9 +387,85 @@ export default function AdminPage() {
 
         {isSpectator && (
           <div className="mb-6 rounded-md bg-blue-50 border border-blue-200 p-4 text-sm text-blue-600">
-            {t("Only class changes are available to spectators.")}
+            {t(
+              "Spectators can manage member and spectator accounts and moderate content.",
+            )}
           </div>
         )}
+
+        <section className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-md">
+          <h2 className="mb-4 text-xl font-bold">{t("Create account")}</h2>
+          <form onSubmit={saveAccount} className="flex flex-wrap gap-3">
+            {["name", "email", "password"].map((field) => (
+              <label key={field} className="text-sm">
+                {t(
+                  field === "name"
+                    ? "Name"
+                    : field === "email"
+                      ? "Email"
+                      : "Password",
+                )}
+                <input
+                  aria-label={t(
+                    field === "name"
+                      ? "Name"
+                      : field === "email"
+                        ? "Email"
+                        : "Password",
+                  )}
+                  type={field === "name" ? "text" : field}
+                  required={field !== "name"}
+                  value={newAccount[field]}
+                  onChange={(event) =>
+                    setNewAccount({
+                      ...newAccount,
+                      [field]: event.target.value,
+                    })
+                  }
+                  className="block rounded-md border border-gray-300 px-3 py-2"
+                />
+              </label>
+            ))}
+            <label className="text-sm">
+              {t("Class")}
+              <select
+                value={newAccount.class_name}
+                onChange={(event) =>
+                  setNewAccount({
+                    ...newAccount,
+                    class_name: event.target.value,
+                  })
+                }
+                className="block rounded-md border border-gray-300 px-3 py-2"
+              >
+                <option value="">{t("No class / Keine Klasse")}</option>
+                {STUDENT_CLASS_NAMES.map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              {t("Role")}
+              <select
+                value={newAccount.designation}
+                onChange={(event) =>
+                  setNewAccount({
+                    ...newAccount,
+                    designation: event.target.value,
+                  })
+                }
+                className="block rounded-md border border-gray-300 px-3 py-2"
+              >
+                <option value="member">{t("Member")}</option>
+                <option value="spectator">{t("Spectator")}</option>
+                {isAdmin && <option value="admin">{t("Admin")}</option>}
+              </select>
+            </label>
+            <button className="self-end rounded-md bg-gray-900 px-4 py-2 text-white">
+              {t("Create account")}
+            </button>
+          </form>
+        </section>
 
         {/* Users Management */}
         <div className="mb-8 rounded-lg bg-white p-6 shadow-md border border-gray-200">
@@ -399,26 +527,36 @@ export default function AdminPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex flex-wrap items-center gap-2">
+                        {(isAdmin || u.designation !== "admin") && (
+                          <button
+                            onClick={() => editAccount(u)}
+                            className="rounded-md border border-gray-300 px-3 py-1 text-xs"
+                          >
+                            {t("Edit account")}
+                          </button>
+                        )}
                         {isAdmin ? (
                           <select
                             value={u.designation}
                             onChange={(e) =>
                               handleRoleChange(u.user_id, e.target.value)
                             }
+                            disabled={
+                              u.designation === "admin" && adminCount <= 1
+                            }
                             className="rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
                           >
                             <option value="member">{t("Member")}</option>
                             <option value="admin">{t("Admin")}</option>
-                            <option value="spectator">
-                              {t("Spectator")}
-                            </option>
+                            <option value="spectator">{t("Spectator")}</option>
                           </select>
                         ) : (
                           <span className="text-xs text-gray-500">
                             {t("Read only")}
                           </span>
                         )}
-                        {isAdmin && u.designation === "member" && (
+                        {(isAdmin ||
+                          (isSpectator && u.designation !== "admin")) && (
                           <button
                             onClick={() => handleResetPassword(u.user_id, u.email)}
                             className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-900 hover:bg-gray-50"
@@ -426,9 +564,12 @@ export default function AdminPage() {
                             {t("Reset password")}
                           </button>
                         )}
-                        {isAdmin && (
+                        {(isAdmin ||
+                          (isSpectator && u.designation !== "admin")) && (
                           u.designation === "admin" && adminCount <= 1 ? (
-                            <span className="text-xs text-gray-400">{t("Last admin")}</span>
+                            <span className="text-xs text-gray-400">
+                              {t("Last admin")}
+                            </span>
                           ) : (
                             <button
                               type="button"
@@ -453,8 +594,8 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Bulk Import (Admin only) */}
-        {isAdmin && (
+        {/* Bulk import */}
+        {hasAdminAccess && (
           <div className="mb-8 rounded-lg bg-white p-6 shadow-md border border-gray-200">
             <h2 className="mb-4 text-xl font-bold text-gray-900">
               {t("Import accounts")}
@@ -462,12 +603,12 @@ export default function AdminPage() {
             <p className="mb-4 text-sm text-gray-600">
               {t("Format A (recommended):")}{" "}
               <code className="bg-gray-100 px-2 py-1 rounded">
-                Max Muster, max@sisbasel.ch, Password123!, Gym, 1
+                Max Muster, max@sisbasel.ch, Password123!, G3
               </code>
               <br />
               {t("Format B (legacy):")}{" "}
               <code className="bg-gray-100 px-2 py-1 rounded">
-                email@sisbasel.ch password123 Int 2
+                email@sisbasel.ch password123 Pre-IB 2
               </code>
             </p>
             <form onSubmit={handleBulkImport} className="space-y-4">
@@ -482,7 +623,9 @@ export default function AdminPage() {
                   />
                 </label>
                 {importFileName ? (
-                  <span className="text-sm text-gray-600">{importFileName}</span>
+                  <span className="text-sm text-gray-600">
+                    {importFileName}
+                  </span>
                 ) : null}
               </div>
               <textarea
@@ -507,10 +650,18 @@ export default function AdminPage() {
                     {t("Summary")}
                   </h3>
                   <ul className="text-sm text-blue-800 space-y-1">
-                    <li>{t("Total: {count}", { count: bulkResults.summary.total })}</li>
-                    <li>{t("Created: {count}", { count: bulkResults.summary.created })}</li>
-                    <li>{t("Skipped: {count}", { count: bulkResults.summary.skipped })}</li>
-                    <li>{t("Errors: {count}", { count: bulkResults.summary.errors })}</li>
+                    <li>
+                      {t("Total: {count}", { count: bulkResults.summary.total })}
+                    </li>
+                    <li>
+                      {t("Created: {count}", { count: bulkResults.summary.created })}
+                    </li>
+                    <li>
+                      {t("Skipped: {count}", { count: bulkResults.summary.skipped })}
+                    </li>
+                    <li>
+                      {t("Errors: {count}", { count: bulkResults.summary.errors })}
+                    </li>
                   </ul>
                 </div>
 
@@ -522,7 +673,8 @@ export default function AdminPage() {
                     <ul className="text-sm text-red-800 space-y-1">
                       {bulkResults.results.errors.map((err, idx) => (
                         <li key={idx}>
-                          {err.email}: {t(messageKeyFromError(err.reason, "Something went wrong"))}
+                          {err.email}:{" "}
+                          {t(messageKeyFromError(err.reason, "Something went wrong"))}
                         </li>
                       ))}
                     </ul>
@@ -537,7 +689,8 @@ export default function AdminPage() {
                     <ul className="text-sm text-yellow-800 space-y-1">
                       {bulkResults.results.skipped.map((skip, idx) => (
                         <li key={idx}>
-                          {skip.email}: {t(messageKeyFromError(skip.reason, "Something went wrong"))}
+                          {skip.email}:{" "}
+                          {t(messageKeyFromError(skip.reason, "Something went wrong"))}
                         </li>
                       ))}
                     </ul>

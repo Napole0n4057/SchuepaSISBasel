@@ -1,8 +1,9 @@
+import { accountMutation } from "../../utils/permissions.js";
 import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
 import { hash } from "argon2";
 import { addStudent } from "../../../../app/api/utils/studentStore.js";
-import { isValidStudentClass } from "../../../../studentClasses.js";
+import { isOptionalStudentClass } from "../../../../studentClasses.js";
 
 function deriveNameFromEmail(email) {
   const localPart = email.split("@")[0] || email;
@@ -19,7 +20,7 @@ export async function POST(request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if current user is admin
+    // Check account-management permission
     const currentUserRole = await sql`
       SELECT designation
       FROM user_roles
@@ -29,10 +30,10 @@ export async function POST(request) {
 
     if (
       currentUserRole.length === 0 ||
-      currentUserRole[0].designation !== "admin"
+      !["admin", "spectator"].includes(currentUserRole[0].designation)
     ) {
       return Response.json(
-        { error: "Forbidden - Admin access required" },
+        { error: "Forbidden - Admin or Spectator access required" },
         { status: 403 },
       );
     }
@@ -54,7 +55,10 @@ export async function POST(request) {
     };
 
     for (const userData of users) {
-      const { email, password, programme, year } = userData;
+      const { email, password,
+        class_name = null,
+        designation = "member",
+      } = userData;
       const providedName =
         typeof userData.name === "string" ? userData.name.trim() : "";
 
@@ -66,11 +70,24 @@ export async function POST(request) {
         continue;
       }
 
-      if (!isValidStudentClass(programme, year)) {
+      if (!isOptionalStudentClass(class_name) ||
+        userData.programme != null ||
+        userData.year != null
+      ) {
         results.errors.push({
           email,
-          reason: "A valid student programme and year are required",
+          reason:
+            "A valid class name or null is required; legacy programme/year needs manual mapping",
         });
+        continue;
+      }
+
+      if (
+        !["admin", "member", "spectator"].includes(designation) ||
+        (designation === "admin" && currentUserRole[0].designation !== "admin")) {
+        results.errors.push({
+          email,
+          reason: "Forbidden role assignment" });
         continue;
       }
 
@@ -79,7 +96,7 @@ export async function POST(request) {
       try {
         // Check if user already exists
         const existingUser = await sql`
-          SELECT id FROM auth_users WHERE email = ${normalizedEmail}
+          SELECT id FROM auth_users WHERE LOWER(email) = ${normalizedEmail}
         `;
 
         if (existingUser.length > 0) {
@@ -98,10 +115,14 @@ export async function POST(request) {
             ? providedName
             : deriveNameFromEmail(normalizedEmail);
 
-        await sql`
+        const newUser = await accountMutation(
+          (tx) => tx`
           WITH new_user AS (
             INSERT INTO auth_users (email, name, "emailVerified")
-            VALUES (${normalizedEmail}, ${resolvedName}, NOW())
+            SELECT ${normalizedEmail}, ${resolvedName}, NOW()
+        WHERE EXISTS (SELECT 1 FROM user_roles actor WHERE actor.user_id = ${session.user.id}
+          AND (actor.designation = 'admin' OR (actor.designation = 'spectator' AND ${designation} IN ('member', 'spectator'))))
+            AND NOT EXISTS (SELECT 1 FROM auth_users existing WHERE LOWER(existing.email) = ${normalizedEmail})
             RETURNING id, email
           ), new_account AS (
             INSERT INTO auth_accounts ("userId", type, provider, "providerAccountId", password)
@@ -110,17 +131,22 @@ export async function POST(request) {
             RETURNING id
           ), new_role AS (
             INSERT INTO user_roles (user_id, email, designation)
-            SELECT id, email, 'member'
+            SELECT id, email, ${designation}
             FROM new_user
             RETURNING id
           ), new_class AS (
-            INSERT INTO student_classes (user_id, programme, year)
-            SELECT id, ${programme}, ${year}
+            INSERT INTO student_classes (user_id, class_name)
+            SELECT id, ${class_name}
             FROM new_user
             RETURNING user_id
           )
           SELECT id FROM new_user
-        `;
+        `,
+        );
+        if (!newUser.length) {
+          results.errors.push({ email, reason: "Forbidden" });
+          continue;
+        }
 
         // Store in text file (local) for teacher requirement
         await addStudent({

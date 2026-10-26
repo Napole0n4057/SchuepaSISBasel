@@ -8,6 +8,14 @@ export async function POST(request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const roles =
+      await sql`SELECT designation FROM user_roles WHERE user_id = ${session.user.id} LIMIT 1`;
+    if (!["admin", "member"].includes(roles[0]?.designation)) {
+      return Response.json(
+        { error: "Participation is not permitted" },
+        { status: 403 });
+    }
+
     const body = await request.json();
     const { title, content, is_anonymous } = body;
 

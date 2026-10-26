@@ -1,59 +1,50 @@
-import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
+import { getRole } from "../../utils/permissions.js";
+import { mutateAccount } from "../../utils/accountManagement.js";
+import { isValidUserId } from "../../../../studentClasses.js";
 
 export async function POST(request) {
   try {
     const session = await auth();
-    if (!session || !session.user?.id) {
+    if (!session?.user?.id)
       return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const role = await getRole(session.user.id);
 
-    // Check if current user is admin
-    const currentUserRole = await sql`
-      SELECT designation
-      FROM user_roles
-      WHERE user_id = ${session.user.id}
-      LIMIT 1
-    `;
-
-    if (
-      currentUserRole.length === 0 ||
-      currentUserRole[0].designation !== "admin"
-    ) {
+    if (!["admin", "spectator"].includes(role))
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    let body;
+    try {
+      body = await request.json();
+    } catch {
       return Response.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 },
-      );
-    }
-
-    const body = await request.json();
-    const { userId, designation } = body;
-
-    if (!userId || !designation) {
-      return Response.json(
-        { error: "Missing userId or designation" },
+        { error: "Invalid JSON" },
         { status: 400 },
       );
     }
 
-    if (!["admin", "member", "spectator"].includes(designation)) {
+    if (!body || !isValidUserId(body.userId))
+      return Response.json(
+        { error: "Valid userId required" },
+        { status: 400 });
+    if (!["admin", "member", "spectator"].includes(body.designation))
       return Response.json({ error: "Invalid designation" }, { status: 400 });
-    }
-
-    const result = await sql`
-      UPDATE user_roles
-      SET designation = ${designation}, updated_at = NOW()
-      WHERE user_id = ${userId}
-      RETURNING user_id, email, designation, updated_at
-    `;
-
-    if (result.length === 0) {
-      return Response.json({ error: "User not found" }, { status: 404 });
-    }
-
-    return Response.json({ user: result[0] });
+    if (role !== "admin")
+      return Response.json({ error: "Admin access required" }, { status: 403 });
+    const result = await mutateAccount(
+      session.user.id,
+      body.userId,
+      "role",
+      body.designation,
+    );
+    if (!result.length)
+      return Response.json({ error: "Account unavailable, protected, or last administrator" },
+        { status: 409 },
+      );
+    return Response.json({ success: true, user: result[0] });
   } catch (err) {
-    console.error("POST /api/user-roles/update error", err);
+    if (err?.code === "23505")
+      return Response.json({ error: "Email already in use" }, { status: 409 });
+    console.error("Account role failed", err);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

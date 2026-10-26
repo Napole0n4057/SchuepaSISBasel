@@ -15,13 +15,13 @@ const past = "(statement_timestamp() AT TIME ZONE 'UTC') - interval '1 hour'";
 const fixtures = `
   user_roles(user_id, designation) AS (VALUES
     (${uuid(101)}, 'member'), (${uuid(102)}, 'member'), (${uuid(103)}, 'member'),
-    (${uuid(104)}, 'admin'), (${uuid(105)}, 'spectator')),
-  student_classes(user_id, programme, year) AS (VALUES
-    (${uuid(101)}, 'Gym', 2), (${uuid(102)}, 'Int', 3)),
+    (${uuid(104)}, 'admin'), (${uuid(105)}, 'spectator'), (${uuid(107)}, 'member'), (${uuid(108)}, 'member')),
+  student_classes(user_id, class_name) AS (VALUES
+    (${uuid(101)}, 'G3'), (${uuid(102)}, 'IBDP 2'), (${uuid(107)}, 'G2'), (${uuid(108)}, NULL)),
   auth_users(id, email) AS (SELECT user_id, 'fixture@example.invalid' FROM user_roles),
   votes(id, title, created_by, admin_only, ends_at, is_active, created_at, deleted_at) AS (VALUES
     (${uuid(1)}, 'School', ${uuid(104)}, false, NULL::timestamp, true, ${past}, NULL::timestamp),
-    (${uuid(2)}, 'Gym 2', ${uuid(104)}, false, ${future}, true, ${past}, NULL::timestamp),
+    (${uuid(2)}, 'G3', ${uuid(104)}, false, ${future}, true, ${past}, NULL::timestamp),
     (${uuid(3)}, 'Two classes', ${uuid(104)}, false, ${future}, true, ${past}, NULL::timestamp),
     (${uuid(4)}, 'Legacy', ${uuid(104)}, false, ${future}, true, ${past}, NULL::timestamp),
     (${uuid(5)}, 'Expired class', ${uuid(104)}, false, ${past}, true, ${past}, NULL::timestamp),
@@ -31,8 +31,8 @@ const fixtures = `
     (${uuid(9)}, 'Inactive', ${uuid(104)}, false, NULL::timestamp, NULL::boolean, ${past}, NULL::timestamp),
     (${uuid(10)}, 'At deadline', ${uuid(104)}, false, statement_timestamp() AT TIME ZONE 'UTC', true, ${past}, NULL::timestamp)),
   vote_classes(vote_id, class_name) AS (VALUES
-    (${uuid(2)}, 'Gym 2'), (${uuid(3)}, 'Gym 2'), (${uuid(3)}, 'Int 3'),
-    (${uuid(4)}, 'G4'), (${uuid(5)}, 'Int 6')),
+    (${uuid(2)}, 'G3'), (${uuid(3)}, 'G3'), (${uuid(3)}, 'IBDP 2'),
+    (${uuid(4)}, 'Gym 4'), (${uuid(5)}, 'IBDP 3')),
   vote_options(vote_id, id) AS (SELECT id, id FROM votes),
 `;
 const fixtureQuery = (query) => query.replace(/^WITH /, `WITH ${fixtures}`);
@@ -40,8 +40,10 @@ const read = async (query, params) => (await sql.transaction([sql(query, params)
 let checks = 0;
 
 for (const [viewer, expected] of [
-  [101, [1, 2, 3, 5, 9, 10]], [102, [1, 3, 5, 9, 10]],
-  [103, [1, 5, 9, 10]], [106, [1, 5, 9, 10]],
+  [101, [1, 2, 3, 5, 6, 9, 10]], [102, [1, 3, 5, 6, 9, 10]],
+  [103, [1, 5, 6, 9, 10]], [106, [1, 5, 6, 9, 10]],
+  [107, [1, 5, 6, 9, 10]],
+  [108, [1, 5, 6, 9, 10]],
   [104, [1, 2, 3, 4, 5, 6, 7, 9, 10]], [105, [1, 2, 3, 4, 5, 6, 7, 9, 10]],
 ]) {
   const rows = await read(fixtureQuery(VISIBLE_VOTES_SQL), [id(viewer), null]);
@@ -53,7 +55,10 @@ for (const [viewer, expected] of [
 }
 
 // Check a direct lookup uses exactly the same visibility rules as the full list.
-for (const [viewer, vote, visible] of [[101, 2, true], [103, 2, false], [103, 5, true], [103, 6, false]]) {
+for (const [viewer, vote, visible] of [[101, 2, true], [102, 2, false],
+  [107, 2, false],
+  [108, 2, false],
+  [103, 2, false], [103, 5, true], [103, 6, true]]) {
   const rows = await read(fixtureQuery(VISIBLE_VOTES_SQL), [id(viewer), id(vote)]);
   assert.equal(rows.length, visible ? 1 : 0);
   checks++;
@@ -64,7 +69,10 @@ for (const [viewer, vote, visible] of [[101, 2, true], [103, 2, false], [103, 5,
 const castSelection = CAST_VOTE_SQL.replace(/INSERT INTO user_votes \([^)]*\)\s*/, "").split(/\s+ON CONFLICT/)[0];
 for (const [viewer, vote, allowed] of [
   [101, 1, true], [101, 2, true], [102, 2, false], [102, 3, true],
-  [103, 1, true], [103, 2, false], [103, 3, false], [101, 4, false],
+  [103, 1, true],
+  [107, 2, false],
+  [108, 2, false],
+  [106, 1, false], [103, 2, false], [103, 3, false], [101, 4, false],
   [101, 5, false], [104, 5, false], [104, 6, false], [101, 7, false],
   [104, 7, true], [104, 2, true], [105, 1, false], [105, 2, false],
   [105, 7, false], [101, 8, false], [101, 9, false], [101, 10, false],

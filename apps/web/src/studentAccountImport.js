@@ -1,39 +1,33 @@
-function parseYear(value) {
-  return /^\d+$/.test(value) ? Number(value) : Number.NaN;
-}
-
+// CSV/TSV: name, email, password, canonical class (optional).
+// Whitespace: email password followed by the complete canonical class name.
+// Legacy programme/year pairs are preserved as invalid text for explicit review.
 export function parseUsersFromText(rawText) {
-  const users = [];
-
-  for (const line of rawText.trim().split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    if (trimmed.includes("\t")) {
-      const [name, email, password, programme, year] = trimmed
-        .split("\t")
-        .map((value) => value.trim());
-      if (email && password) {
-        users.push({ name: name || undefined, email, password, programme, year: parseYear(year || "") });
+  return rawText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .flatMap((line) => {
+      const separator = line.includes("\t")
+        ? "\t"
+        : line.includes(",")
+          ? ","
+          : null;
+      let name, email, password, className;
+      if (separator) {
+      const parts = line.split(separator).map((part) => part.trim());
+        [name, email, password] = parts;
+        className = parts.slice(3).filter(Boolean).join(" ");
+      } else {
+        [email, password, ...className] = line.split(/\s+/);
+        className = className.join(" ");
       }
-      continue;
-    }
-
-    if (trimmed.includes(",")) {
-      const [name, email, password, programme, year] = trimmed
-        .split(",")
-        .map((value) => value.trim());
-      if (email && password) {
-        users.push({ name: name || undefined, email, password, programme, year: parseYear(year || "") });
+      return email && password
+        ? [
+            {
+              ...(name ? { name } : {}), email, password,
+              class_name: className || null,
+            },
+          ]
+        : [];
+    });
       }
-      continue;
-    }
-
-    const [email, password, programme, year] = trimmed.split(/\s+/, 4);
-    if (email && password) {
-      users.push({ email, password, programme, year: parseYear(year || "") });
-    }
-  }
-
-  return users;
-}

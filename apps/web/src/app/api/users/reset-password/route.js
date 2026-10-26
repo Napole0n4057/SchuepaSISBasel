@@ -1,78 +1,51 @@
-import sql from "../../../../app/api/utils/sql.js";
 import { auth } from "../../../../auth.js";
+import { getRole } from "../../utils/permissions.js";
+import { mutateAccount } from "../../utils/accountManagement.js";
+import { isValidUserId } from "../../../../studentClasses.js";
 import { hash } from "argon2";
 
 export async function POST(request) {
   try {
     const session = await auth();
-    if (!session || !session.user?.id) {
+    if (!session?.user?.id)
       return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const role = await getRole(session.user.id);
 
-    const currentUserRole = await sql`
-      SELECT designation
-      FROM user_roles
-      WHERE user_id = ${session.user.id}
-      LIMIT 1
-    `;
-
-    if (
-      currentUserRole.length === 0 ||
-      currentUserRole[0].designation !== "admin"
-    ) {
+    if (!["admin", "spectator"].includes(role))
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    let body;
+    try {
+      body = await request.json();
+    } catch {
       return Response.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 },
-      );
-    }
-
-    const body = await request.json();
-    const { userId, newPassword } = body;
-
-    if (!userId || !newPassword) {
-      return Response.json(
-        { error: "Missing userId or newPassword" },
+        { error: "Invalid JSON" },
         { status: 400 },
       );
     }
-
-    const targetRole = await sql`
-      SELECT designation
-      FROM user_roles
-      WHERE user_id = ${userId}
-      LIMIT 1
-    `;
-
-    if (targetRole.length === 0) {
-      return Response.json({ error: "User role not found" }, { status: 404 });
-    }
-
-    if (targetRole[0].designation !== "member") {
+    if (!body || !isValidUserId(body.userId))
+      return Response.json({ error: "Valid userId required" }, { status: 400 });
+    if (typeof body.newPassword !== "string" || !body.newPassword)
       return Response.json(
-        { error: "Only member passwords can be reset" },
-        { status: 403 },
+        { error: "A password is required" },
+        { status: 400 },
       );
-    }
+    const result = await mutateAccount(
+      session.user.id,
+      body.userId,
+      "password",
+      await hash(body.newPassword),
+    );
 
-    const hashedPassword = await hash(newPassword);
-
-    const updated = await sql`
-      UPDATE auth_accounts
-      SET password = ${hashedPassword}
-      WHERE "userId" = ${userId} AND provider = 'credentials'
-      RETURNING id
-    `;
-
-    if (updated.length === 0) {
+    if (!result.length)
       return Response.json(
-        { error: "Credentials account not found" },
-        { status: 404 },
+        { error: "Account unavailable, protected, or last administrator" },
+        { status: 409 },
       );
-    }
-
-    return Response.json({ success: true });
+    return Response.json({ success: true, user: result[0] });
   } catch (err) {
-    console.error("POST /api/users/reset-password error", err);
+    if (err?.code === "23505")
+      return Response.json({ error: "Email already in use" }, { status: 409 });
+    console.error("Account password failed", err);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

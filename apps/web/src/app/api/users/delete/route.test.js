@@ -15,7 +15,9 @@ vi.mock("../../../../auth.js", () => ({
 
 vi.mock("../../../../app/api/utils/sql.js", () => {
   const sql = vi.fn(async (strings, ...values) => {
-    const query = strings.join(" ").replace(/\s+/g, " ");
+    const query = (
+      typeof strings === "string" ? strings : strings.join(" ")
+    ).replace(/\s+/g, " ");
 
     if (query.includes("SELECT designation")) {
       return mockDb.role ? [{ designation: mockDb.role }] : [];
@@ -32,10 +34,13 @@ vi.mock("../../../../app/api/utils/sql.js", () => {
 
   sql.transaction = vi.fn(async (callback) => {
     const txn = (strings, ...values) => {
-      const query = strings.join(" ").replace(/\s+/g, " ");
+      const query = (
+        typeof strings === "string" ? strings : strings.join(" ")
+      ).replace(/\s+/g, " ");
       mockDb.transactionCalls.push({ query, values });
       if (query.includes("DELETE FROM auth_users")) {
-        return Promise.resolve([{ id: values[0] }]);
+        return Promise.resolve(
+          mockDb.adminCount > 1 ? [{ id: targetUserId }] : []);
       }
       return Promise.resolve([]);
     };
@@ -87,8 +92,8 @@ describe("POST /api/users/delete", () => {
     mockDb.adminCount = 1;
     const response = await deleteUser({ userId: targetUserId, confirm: true });
     expect(response.response.status).toBe(409);
-    expect(response.data.error).toBe("Cannot delete the last admin account");
-    expect(mockDb.transactionCalls).toHaveLength(0);
+    expect(response.data.error).toContain("last administrator");
+    expect(mockDb.transactionCalls[0].query).toContain("LOCK TABLE user_roles");
   });
 
   it("removes account records without touching forum, blog or vote content tables", async () => {

@@ -1,5 +1,7 @@
 # Schüler:innenrat SIS Basel – Website
 
+**Lokaler Änderungsstand vom 26. Oktober 2026:** Klassen, Abstimmungsrechte und Rollen wurden korrigiert. Die neue Datenbankmigration ist noch nicht angewendet; dieser Stand ist nicht veröffentlicht. Prüfung, Migrationsablauf und offene Klassenzuordnungen: [Änderungsbericht](apps/web/CHANGE_REPORT_20261026.md).
+
 ## 1. Zweck und Geltungsbereich
 
 Diese Website unterstützt die Arbeit des Schüler:innenrats der SIS Basel. Sie bietet insbesondere eine Plattform für Abstimmungen, Mitteilungen und Diskussionen sowie für die Verwaltung der zugehörigen Benutzerkonten.
@@ -19,7 +21,7 @@ Die Website umfasst folgende Bereiche:
 - **Forum:** Diskussionen und Kommentare, einschliesslich Antworten auf Kommentare.
 - **Blog / Mitteilungen:** Veröffentlichung textbasierter Beiträge.
 - **Administration:** Verwaltung von Benutzerkonten, Rollen und Passwörtern; Konten können auch gelöscht werden.
-- **Klassenzuordnung:** Zuordnung von Schülerinnen und Schülern zu `Gym` oder `Int` und zu den Jahrgängen 1–6.
+- **Klassenzuordnung:** Optionale Zuordnung zu genau zwölf Klassen: Gymnasium `S1 → S2 → G1 → G2 → G3 → G4` und International `Pre-IB 1 → Pre-IB 2 → Pre-IB 3 → IBDP 1 → IBDP 2 → IBDP 3`.
 - **Mehrsprachige Oberfläche:** Deutsch und Englisch.
 
 Die Anwendung verwendet die Rollen `admin`, `member` und `spectator`:
@@ -28,7 +30,7 @@ Die Anwendung verwendet die Rollen `admin`, `member` und `spectator`:
 | --- | --- |
 | `admin` | Verwaltung von Konten und Rollen sowie administrative Funktionen |
 | `member` | Reguläres Schülerkonto; Nutzung der freigegebenen Beteiligungsfunktionen |
-| `spectator` | Eingeschränkter Zugang, insbesondere für begleitende Lehrpersonen; Zugriff auf die Klassenzuordnung, jedoch keine allgemeine Kontenadministration |
+| `spectator` | Begleitende Lehrpersonen: Inhalte und Abstimmungen ansehen, Mitglieds-/Zuschauerkonten verwalten und Inhalte moderieren; keine Beteiligung oder Adminverwaltung |
 
 Die tatsächlich verfügbaren Aktionen hängen zusätzlich von den jeweiligen serverseitigen Berechtigungsprüfungen ab. **Wichtig:** Die Sichtbarkeit und serverseitige Durchsetzung von *klassenspezifischen Abstimmungen* wurde bei der Übergabe nicht abschliessend geprüft. Bis zu einem erfolgreichen Test sollten darüber keine vertraulichen oder verbindlichen Abstimmungen durchgeführt werden.
 
@@ -63,7 +65,7 @@ Das Projekt ist als Repository mit einer Webanwendung unter `apps/web` organisie
 
 1. Als Administrator anmelden und den Administrationsbereich öffnen (`/admin`).
 2. Neue Konten über die vorgesehenen Verwaltungsfunktionen erstellen oder gesammelt importieren.
-3. Für Schülerkonten die richtige Zuordnung zu `Gym`/`Int` und zum Jahrgang prüfen. Bestehende Konten müssen nach Einführung der Klassentabellen gegebenenfalls nachträglich zugeordnet werden.
+3. Für Schülerkonten den genauen Klassennamen prüfen. Keine Klasse ist für jede Rolle erlaubt. Alte `Gym`/`Int`-Zuordnungen benötigen eine bestätigte manuelle Zuordnung und werden nicht automatisch umgeschrieben.
 4. Rollen nur nach schulischer Freigabe ändern. Administratorrechte sparsam vergeben.
 5. Passwörter über die vorgesehene Zurücksetzfunktion erneuern; Passwörter nicht in Listen oder Dokumenten sammeln.
 6. Vor dem Löschen eines Kontos Identität und Berechtigung prüfen. Die Löschung eines Kontos entfernt nicht zwingend alle bereits veröffentlichten Inhalte oder abgegebenen Stimmen.
@@ -76,7 +78,7 @@ Die Klassenzuordnungen werden in der Tabelle `student_classes` gespeichert. Für
 
 - Die Verarbeitung wird beim nächsten geeigneten Anwendungsaufruf nach dem vorgesehenen Stichtag ausgelöst; auf einem schlafenden Server ist sie **nicht zwingend exakt um Mitternacht** abgeschlossen.
 - Nach den Sommerferien stichprobenartig kontrollieren, ob die Zuordnungen korrekt fortgeschrieben wurden.
-- Abgehende Jahrgänge, insbesondere Jahrgang 6, gesondert überprüfen; Abschluss, Kontolöschung und Archivierung erfordern eine organisatorische Entscheidung.
+- Abschlussklassen G4 und IBDP 3 gesondert überprüfen; Abschluss, Kontolöschung und Archivierung erfordern eine organisatorische Entscheidung.
 - Die hinterlegten Ferientermine reichen nach aktuellem Entwicklungsstand nur bis **2032**. Vor dem folgenden Schuljahr müssen die Daten anhand des offiziellen Basler Ferienkalenders überprüft und ergänzt werden.
 
 ### Abstimmungen und Inhalte

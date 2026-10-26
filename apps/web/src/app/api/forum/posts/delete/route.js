@@ -19,7 +19,7 @@ export async function POST(request) {
 
     if (
       currentUserRole.length === 0 ||
-      currentUserRole[0].designation !== "admin"
+      !["admin", "spectator"].includes(currentUserRole[0].designation)
     ) {
       return Response.json(
         { error: "Forbidden - Admin access required" },
