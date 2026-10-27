@@ -1,4 +1,5 @@
 import sql from "../../../../../app/api/utils/sql.js";
+import { withForumAuthor } from "../../../utils/forumAuthor.js";
 import { auth } from "../../../../../auth.js";
 
 export async function POST(request) {
@@ -32,6 +33,13 @@ export async function POST(request) {
       RETURNING *
     `;
 
+    if (post[0].is_anonymous) {
+      const authors = await sql`SELECT name as account_name, email as author_email
+        FROM auth_users WHERE id = ${session.user.id} LIMIT 1`;
+      return Response.json({
+        post: withForumAuthor({ ...post[0], ...authors[0] }, roles[0]?.designation),
+      });
+    }
     return Response.json({ post: post[0] });
   } catch (err) {
     console.error("POST /api/forum/posts/create error", err);

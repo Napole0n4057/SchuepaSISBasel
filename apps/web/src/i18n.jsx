@@ -226,6 +226,16 @@ const messages = {
   "Display name": { de: "Anzeigename", en: "Display name" },
   "From your signed-in account": { de: "Aus Ihrem angemeldeten Konto", en: "From your signed-in account" },
   "Profile picture": { de: "Profilbild", en: "Profile picture" },
+  "Author": { de: "Autor", en: "Author" },
+  "Author unavailable": { de: "Autor nicht verfügbar", en: "Author unavailable" },
+  "Anonymous posts are only anonymous to other students. Administrators and moderators can view your identity for moderation purposes.": {
+    de: "Anonyme Beiträge sind nur gegenüber anderen Schüler anonym. Administrator und Moderator können deine Identität zur Moderation einsehen.",
+    en: "Anonymous posts are only anonymous to other students. Administrators and moderators can view your identity for moderation purposes.",
+  },
+  "This also applies to comments and replies.": {
+    de: "Dies gilt auch für Kommentare und Antworten.",
+    en: "This also applies to comments and replies.",
+  },
   "Anonymous": { de: "Anonym", en: "Anonymous" },
   "Profile picture for {name}": { de: "Profilbild von {name}", en: "Profile picture for {name}" },
   "Choose profile picture": { de: "Profilbild auswählen", en: "Choose profile picture" },

@@ -13,6 +13,7 @@ vi.mock("../../../../../auth.js", () => ({
 
 vi.mock("../../../../../app/api/utils/sql.js", () => ({
   default: vi.fn(async (strings) => {
+    if (strings.join(" ").includes("SELECT designation")) return [{ designation: "member" }];
     mockDb.query = strings.join(" ").replace(/\s+/g, " ");
     return mockDb.rows;
   }),

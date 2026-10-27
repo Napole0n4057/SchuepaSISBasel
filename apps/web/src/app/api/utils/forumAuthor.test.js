@@ -50,3 +50,10 @@ describe("withForumAuthor", () => {
     expect(result).not.toHaveProperty("user_id");
   });
 });
+
+describe("anonymous moderation identity", () => {
+  it("uses the stored email if no account name is available", () => {
+    expect(withForumAuthor({ is_anonymous: true, account_name: " ", author_email: "max@example.test" }, "admin")
+      .moderation_author_name).toBe("max@example.test");
+  });
+});

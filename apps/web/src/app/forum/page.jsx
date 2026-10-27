@@ -1,3 +1,5 @@
+import AnonymityNotice from "@/components/AnonymityNotice";
+import ForumAuthorIdentity from "@/components/ForumAuthorIdentity";
 import ModerationActions from "@/components/ModerationActions";
 import { canModerate, canParticipate } from "@/permissions";
 import { useState, useEffect } from "react";
@@ -245,6 +247,7 @@ export default function ForumPage() {
                     {t("Post anonymously")}
                   </span>
                 </label>
+                <AnonymityNotice t={t} />
               </div>
 
               <button
@@ -278,6 +281,7 @@ export default function ForumPage() {
                   />
                   <div className="text-sm text-gray-600">
                     {post.author_name === "Anonymous" ? t("Anonymous") : post.author_name}
+                    <ForumAuthorIdentity item={post} t={t} />
                     <span className="mx-2">•</span>
                     {new Date(post.created_at).toLocaleDateString(language === "de" ? "de-CH" : "en-GB")}
                   </div>

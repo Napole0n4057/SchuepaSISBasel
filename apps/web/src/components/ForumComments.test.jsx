@@ -241,14 +241,18 @@ describe("ForumComments", () => {
         post_id: postId,
         parent_comment_id: null,
         content: "Root",
-        author_name: "Student",
+        author_name: "Anonymous",
+        is_anonymous: true,
+        moderation_author_name: "Max Muster",
       },
       {
         id: "reply",
         post_id: postId,
         parent_comment_id: "root",
         content: "Nested",
-        author_name: "Student",
+        author_name: "Anonymous",
+        is_anonymous: true,
+        moderation_author_name: "Max Muster",
       },
     ];
     installCommentApi();
@@ -260,6 +264,7 @@ describe("ForumComments", () => {
     await click(container.querySelector('button[aria-label="Comments: 2"]'));
     await waitForElement(() => commentArticle(container, "Nested"));
     expect(container.querySelector("textarea")).toBeNull();
+    expect(container.textContent.match(/Author: Max Muster/g)).toHaveLength(2);
     expect(buttonByText(container, "Reply")).toBeUndefined();
     expect(
       [...container.querySelectorAll("button")].filter(

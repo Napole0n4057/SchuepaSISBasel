@@ -1,5 +1,6 @@
 import sql from "../../../../../app/api/utils/sql.js";
 import { auth } from "../../../../../auth.js";
+import { getRole } from "../../../utils/permissions.js";
 import { withForumAuthor } from "../../../../../app/api/utils/forumAuthor.js";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,6 +19,8 @@ export async function GET(request) {
       return Response.json({ error: "A valid post_id is required" }, { status: 400 });
     }
 
+    const viewerRole = await getRole(session.user.id);
+
     const comments = await sql`
       SELECT fc.*, u.name as account_name, u.email as author_email,
              us.profile_picture
@@ -29,11 +32,11 @@ export async function GET(request) {
     `;
 
     const commentsWithDetails = comments.map((comment) => ({
-      ...withForumAuthor(comment),
+      ...withForumAuthor(comment, viewerRole),
       parent_comment_id: comment.parent_comment_id || null,
     }));
 
-    return Response.json({ comments: commentsWithDetails });
+    return Response.json({ comments: commentsWithDetails }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     console.error("GET /api/forum/comments/list error", err);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

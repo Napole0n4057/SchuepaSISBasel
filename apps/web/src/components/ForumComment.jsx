@@ -1,3 +1,5 @@
+import AnonymityNotice from "@/components/AnonymityNotice";
+import ForumAuthorIdentity from "@/components/ForumAuthorIdentity";
 import ModerationActions from "./ModerationActions";
 import { useState } from "react";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -60,6 +62,7 @@ export default function ForumComment({
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <span className="text-sm font-semibold text-slate-900">
               {authorName}
+              <ForumAuthorIdentity item={comment} t={t} />
             </span>
             {timestamp && (
               <time
@@ -151,6 +154,7 @@ export default function ForumComment({
                   </button>
                 </div>
               </div>
+              <AnonymityNotice t={t} />
             </form>
           )}
         </div>

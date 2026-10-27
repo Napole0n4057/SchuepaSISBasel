@@ -1,5 +1,6 @@
 import sql from "../../../../../app/api/utils/sql.js";
 import { auth } from "../../../../../auth.js";
+import { getRole } from "../../../utils/permissions.js";
 import { withForumAuthor } from "../../../../../app/api/utils/forumAuthor.js";
 
 export async function GET(request) {
@@ -8,6 +9,8 @@ export async function GET(request) {
     if (!session || !session.user?.id) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const viewerRole = await getRole(session.user.id);
 
     const posts = await sql`
       SELECT fp.*, u.name as account_name, u.email as author_email,
@@ -21,9 +24,9 @@ export async function GET(request) {
       ORDER BY fp.created_at DESC
     `;
 
-    const postsWithDetails = posts.map(withForumAuthor);
+    const postsWithDetails = posts.map((post) => withForumAuthor(post, viewerRole));
 
-    return Response.json({ posts: postsWithDetails });
+    return Response.json({ posts: postsWithDetails }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     console.error("GET /api/forum/posts/list error", err);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

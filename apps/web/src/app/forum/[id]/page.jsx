@@ -1,3 +1,4 @@
+import ForumAuthorIdentity from "@/components/ForumAuthorIdentity";
 import ModerationActions from "@/components/ModerationActions";
 import { canModerate, canParticipate } from "@/permissions";
 import { useEffect, useState } from "react";
@@ -152,6 +153,7 @@ export default function ForumPostPage() {
               />
               <span>
                 {post.author_name === "Anonymous" ? t("Anonymous") : post.author_name}
+                <ForumAuthorIdentity item={post} t={t} />
               </span>
               <span>•</span>
               <span>

@@ -1,3 +1,4 @@
+import AnonymityNotice from "@/components/AnonymityNotice";
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { messageKeyFromError } from "@/i18n";
@@ -242,6 +243,7 @@ export default function ForumComments({
                 />
                   {t("Comment anonymously")}
                 </label>
+                <AnonymityNotice t={t} />
               </div>
             </form>
           )}

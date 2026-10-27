@@ -1,3 +1,4 @@
+import AnonymityNotice from "@/components/AnonymityNotice";
 import { useState, useEffect, useRef } from "react";
 import useUser from "@/utils/useUser";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -235,6 +236,7 @@ export default function SettingsPage() {
                   {t("Default anonymity")}
                 </span>
               </label>
+              <AnonymityNotice t={t} />
               <p className="mt-1 ml-7 text-xs text-gray-500">
                 {t("You can change this for each post")}
               </p>

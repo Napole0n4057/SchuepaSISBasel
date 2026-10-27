@@ -132,7 +132,7 @@ export async function POST(request) {
       throw new Error("Created comment could not be loaded");
     }
 
-    return Response.json({ comment: withForumAuthor(createdComment[0]) });
+    return Response.json({ comment: withForumAuthor(createdComment[0], roles[0]?.designation) });
   } catch (err) {
     console.error("POST /api/forum/comments/create error", err);
     if (err?.code === "42703" && /parent_comment_id/i.test(err?.message || "")) {
