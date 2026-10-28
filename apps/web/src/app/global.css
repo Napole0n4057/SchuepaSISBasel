@@ -168,3 +168,103 @@
     background-size: 100% 100%, min(54vw, 15rem) auto;
   }
 }
+
+/* Homepage handbook: a reserved desktop rail and mobile scroll clearance. */
+@layer components {
+  .home-page {
+    padding-bottom: calc(10rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .handbook-shortcut {
+    position: fixed;
+    z-index: 30;
+    right: calc(1rem + env(safe-area-inset-right, 0px));
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 7.5rem;
+    min-height: 44px;
+    padding: 0.375rem;
+    border-radius: 0.5rem;
+    color: var(--blue-950);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .handbook-shortcut__book {
+    position: relative;
+    display: block;
+    width: 4.75rem;
+    border-radius: 2px 4px 4px 2px;
+    background: white;
+    box-shadow: 2px 2px 0 #d4e0eb, 4px 4px 0 white,
+      0 5px 14px rgb(6 36 95 / 14%);
+    transform-origin: bottom right;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+  }
+
+  .handbook-shortcut__book::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 2px 0 3px rgb(6 36 95 / 12%);
+    pointer-events: none;
+  }
+
+  .handbook-shortcut__book img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: inherit;
+  }
+
+  .handbook-shortcut__label {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 96%);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .handbook-shortcut:focus-visible {
+    outline: 3px solid var(--blue-600);
+    outline-offset: 4px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-page {
+    /* Keep navigation, posts and their actions outside the floating booklet. */
+    padding-right: calc(10rem + env(safe-area-inset-right, 0px));
+  }
+}
+
+@media (max-width: 640px), (max-height: 500px) {
+  .handbook-shortcut__book {
+    width: 3.5rem;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .handbook-shortcut:hover .handbook-shortcut__book {
+    transform: translateY(-3px) scale(1.16);
+    box-shadow: 2px 2px 0 #d4e0eb, 4px 4px 0 white,
+      0 9px 22px rgb(6 36 95 / 22%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handbook-shortcut__book {
+    transition: none;
+  }
+
+  .handbook-shortcut:hover .handbook-shortcut__book {
+    transform: none;
+  }
+}

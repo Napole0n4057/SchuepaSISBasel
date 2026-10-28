@@ -5,6 +5,33 @@ import ProfileAvatar from "@/components/ProfileAvatar";
 import { useLanguage } from "@/i18n";
 import { NotificationDot, useSectionNotifications } from "@/components/SectionNotifications";
 
+function HandbookShortcut() {
+  const { language } = useLanguage();
+
+  return (
+    <a
+      className="handbook-shortcut"
+      href="/handbook/student-council-handbook.pdf"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={language === "de"
+        ? "Handbuch / Handbook (PDF, öffnet in neuem Tab)"
+        : "Handbuch / Handbook (PDF, opens in a new tab)"}
+    >
+      <span className="handbook-shortcut__book" aria-hidden="true">
+        <img
+          src="/handbook/cover.jpg"
+          alt=""
+          width="423"
+          height="600"
+          decoding="async"
+        />
+      </span>
+      <span className="handbook-shortcut__label">Handbuch / Handbook</span>
+    </a>
+  );
+}
+
 export default function HomePage() {
   const { data: user, loading: userLoading } = useUser();
   const { language, t } = useLanguage();
@@ -103,7 +130,8 @@ export default function HomePage() {
     userRole?.designation === "admin" || userRole?.designation === "spectator";
 
   return (
-    <div className="app-page min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+    <div className="app-page home-page min-h-screen bg-gray-50 font-['Helvetica_Neue',Helvetica,Arial,sans-serif]">
+      <HandbookShortcut />
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
